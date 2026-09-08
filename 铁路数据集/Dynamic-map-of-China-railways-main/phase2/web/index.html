@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rail Phase 2 — Map & 24h Simulation</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="ui">
+      <h1>Railway map & timetable simulation</h1>
+      <p class="sub" id="meta-line">Loading data…</p>
+      <div class="row">
+        <span class="time-readout" id="time-readout">00:00</span>
+        <label for="time-slider">Time of day (24h)</label>
+        <input id="time-slider" type="range" min="0" max="1440" step="0.25" value="420" />
+      </div>
+      <div class="row" style="margin-top: 10px">
+        <button type="button" id="btn-play" class="primary">Play</button>
+        <label for="speed">Speed</label>
+        <select id="speed">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+          <option value="12">12×</option>
+          <option value="24">24×</option>
+          <option value="48">48×</option>
+          <option value="144">144×</option>
+        </select>
+      </div>
+      <p class="legend" id="train-legend" aria-label="车次颜色"></p>
+      <p class="stats" id="stats"></p>
+      <p class="train-hover" id="train-hover" hidden aria-live="polite"></p>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

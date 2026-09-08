@@ -1,0 +1,147 @@
+:root {
+  --bg: #0f1419;
+  --panel: #1a222c;
+  --text: #e8e4dc;
+  --muted: #8a9aa8;
+  --accent: #c45c3e;
+  --line: #2a3542;
+  --track: #3d6b5a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: "IBM Plex Sans", "PingFang SC", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+}
+
+.ui {
+  position: absolute;
+  z-index: 1000;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  max-width: min(720px, 100%);
+  background: rgba(26, 34, 44, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.ui h1 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ui .sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.time-readout {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.35rem;
+  min-width: 5.5ch;
+  color: var(--accent);
+}
+
+label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+input[type="range"] {
+  flex: 1;
+  min-width: 160px;
+  accent-color: var(--accent);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+button:hover {
+  border-color: var(--track);
+}
+
+button.primary {
+  background: var(--track);
+  border-color: var(--track);
+}
+
+.stats {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.legend {
+  margin-top: 8px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.legend .sw {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  margin: 0 0.15rem 0 0.35rem;
+  vertical-align: middle;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.legend .sw:first-of-type {
+  margin-left: 0;
+}
+
+.train-hover {
+  margin-top: 10px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--text);
+  background: rgba(196, 92, 62, 0.12);
+  border: 1px solid rgba(196, 92, 62, 0.35);
+  border-radius: 6px;
+}
+
+.train-hover kbd {
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.leaflet-container {
+  background: #0a0d11;
+}

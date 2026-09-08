@@ -1,0 +1,14 @@
+# Phase 2 generated (can be large)
+phase2/web/data/simulation.json
+
+# Local data / caches (may contain API results / large files)
+data/cache/
+data/output/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
+# macOS
+.DS_Store
