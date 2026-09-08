@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: cr12306-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: CR12306
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db-init/CR12306.sql:/docker-entrypoint-initdb.d/CR12306.sql
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:
