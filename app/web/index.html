@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#1677ff">
+  <title>RailFlow · 智慧铁路订票</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="user-page">
+  <header class="nav-shell">
+    <a class="brand" href="/"><span class="brand-mark">R</span><span><b>RailFlow</b><small>长三角智慧铁路</small></span></a>
+    <nav><a class="active" href="#tickets">车票预订</a><a href="#orders">我的订单</a><a href="#service">出行服务</a></nav>
+    <div class="nav-actions"><span id="health" class="live-pill"><i></i>系统连接中</span><a class="admin-link" href="/admin.html">管理控制台 →</a></div>
+  </header>
+
+  <main class="user-main">
+    <section class="user-hero">
+      <div class="hero-copy"><span class="hero-kicker">SMART RAILWAY · 一站式出行</span><h1>下一站，<em>如期抵达</em></h1><p>实时区间余票、智能选座与公平候补，让每一次出发都清晰从容。</p></div>
+      <div class="route-art" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><div class="rail-line"><i></i><i></i><i></i><i></i></div><div class="train-art">➤</div></div>
+    </section>
+
+    <section id="tickets" class="search-panel">
+      <div class="trip-tabs"><button class="active">单程</button><button disabled>往返 <small>即将开放</small></button></div>
+      <div class="search-grid">
+        <label class="station-field"><span>出发城市</span><select id="fromStation"></select></label>
+        <button id="swap" class="swap" title="交换出发与到达站">⇄</button>
+        <label class="station-field"><span>到达城市</span><select id="toStation"></select></label>
+        <label><span>出发日期</span><input id="serviceDate" type="date" value="2026-09-07"></label>
+        <label><span>乘车人数</span><select id="passengers"><option value="1">1 位乘客</option><option value="2">2 位乘客</option><option value="3">3 位乘客</option><option value="4">4 位乘客</option><option value="5">5 位乘客</option></select></label>
+        <button id="search" class="primary search-button"><span>⌕</span> 查询车票</button>
+      </div>
+      <div class="preference-row"><span>座位偏好</span><div id="positionGroup" class="choice-chips"><button class="active" data-value="">不限</button><button data-value="A">A 靠窗</button><button data-value="B">B 中间</button><button data-value="C">C 过道</button><button data-value="D">D 过道</button><button data-value="F">F 靠窗</button></div><label class="switch-label"><input id="fallback" type="checkbox" checked><i></i> 无偏好余票时接受其他座位</label><input id="position" type="hidden" value=""></div>
+    </section>
+
+    <section class="content-grid">
+      <div class="ticket-column">
+        <div class="result-toolbar"><div><h2>可选车次</h2><p id="summary">选择行程后查询实时余票</p></div><div class="result-tabs"><button class="tab active" data-tab="direct">直达</button><button class="tab" data-tab="transfer">中转</button></div></div>
+        <div id="results" class="results"><div class="welcome-empty"><div>↗</div><h3>从一次查询开始</h3><p>系统将读取数据库中的实时区间库存</p></div></div>
+      </div>
+
+      <aside>
+        <section class="panel account-card">
+          <div class="panel-heading"><span class="panel-icon">人</span><div><h3>乘车账户</h3><p id="accountBadge">尚未登录演示账户</p></div></div>
+          <div id="accountForm" class="account-form">
+            <label>用户名<input id="username" value="demo_user" placeholder="至少 3 位"></label>
+            <label>密码<input id="password" type="password" value="database123"></label>
+            <div class="two-fields"><label>乘车人<input id="passengerName" value="张三"></label><label>模拟证件<input id="documentToken" value="SIM-310000-001"></label></div>
+            <button id="register" class="secondary full">创建 / 恢复账户</button>
+          </div>
+          <p class="privacy-note">仅存储 SHA-256 摘要，不保存证件明文</p>
+        </section>
+
+        <section id="orders" class="panel orders-panel">
+          <div class="section-title"><div><h3>我的订单</h3><p>最近行程与订单状态</p></div><button id="refreshOrders" class="icon-button" title="刷新">↻</button></div>
+          <div id="ordersList" class="orders"><p class="muted center">登录后显示订单</p></div>
+        </section>
+
+        <section id="service" class="service-card"><div><b>公平候补</b><p>严格按队列与保护规则兑现</p></div><span>排队透明</span></section>
+      </aside>
+    </section>
+  </main>
+  <footer><span>RailFlow 长三角智慧铁路</span><span>数据库课程设计 · 数据仅用于教学演示</span></footer>
+  <div id="routeModal" class="modal" aria-hidden="true"><div class="modal-card"><button class="modal-close" onclick="closeRoute()">×</button><div id="routeContent"></div></div></div>
+  <div id="toast" class="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

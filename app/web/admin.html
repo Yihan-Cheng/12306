@@ -1,0 +1,60 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css"></head>
+<body>
+<aside class="sidebar">
+  <a class="admin-brand" href="/admin.html"><span>R</span><div><b>RailFlow</b><small>运营控制中心</small></div></a>
+  <nav id="adminNav">
+    <button class="active" data-view="overview"><i>⌂</i><span>运营总览</span></button>
+    <button data-view="trains"><i>⇥</i><span>车次与库存</span></button>
+    <button data-view="orders"><i>▤</i><span>订单与乘客</span></button>
+    <button data-view="waitlist"><i>◷</i><span>候补队列</span><em id="waitBadge">0</em></button>
+    <button data-view="ai"><i>✦</i><span>AI 订票员</span><b class="new-badge">LAB</b></button>
+  </nav>
+  <div class="side-bottom"><a href="/">← 返回用户端</a><div class="admin-profile"><span>管</span><div><b>系统管理员</b><small>教学演示环境</small></div><i></i></div></div>
+</aside>
+<main class="admin-main">
+  <header><div><h1 id="viewTitle">运营总览</h1><p id="viewSubtitle">实时掌握铁路客票系统运行状态</p></div><div class="header-actions"><div id="adminHealth" class="system-state"><i></i><span>系统检测中</span></div><span id="clock"></span><button id="refreshAll" title="刷新当前页面">↻</button></div></header>
+  <section id="view-overview" class="view active">
+    <div class="metric-grid">
+      <article class="metric blue"><div><span>今日运行车次</span><strong id="mRuns">—</strong><small id="mOnSale">— 趟正在售票</small></div><i>⇥</i></article>
+      <article class="metric green"><div><span>有效座位资源</span><strong id="mSeats">—</strong><small id="mOccupancy">— 已占用</small></div><i>▦</i></article>
+      <article class="metric orange"><div><span>累计订单</span><strong id="mOrders">—</strong><small id="mPaid">— 笔已支付</small></div><i>▤</i></article>
+      <article class="metric purple"><div><span>候补等待</span><strong id="mWaits">—</strong><small id="mUsers">— 位注册乘客</small></div><i>◷</i></article>
+    </div>
+    <div class="dashboard-grid">
+      <section class="admin-card span-2"><div class="card-head"><div><h2>实时交易脉冲</h2><p>最近 12 个时间窗口内的订单与库存事件</p></div><div class="legend"><span><i class="blue-dot"></i>订单</span><span><i class="green-dot"></i>库存</span></div></div><div id="pulseChart" class="bar-chart"></div></section>
+      <section class="admin-card"><div class="card-head"><div><h2>订单状态</h2><p>全量订单生命周期分布</p></div></div><div id="orderDonut" class="donut-wrap"></div></section>
+      <section class="admin-card span-2"><div class="card-head"><div><h2>车次负载排行</h2><p>按全程席位位图占用率排序</p></div><button class="text-link" data-goto="trains">查看全部 →</button></div><div id="topTrains" class="rank-list loading-block"></div></section>
+      <section class="admin-card"><div class="card-head"><div><h2>最新系统事件</h2><p>订单与库存审计日志</p></div></div><div id="activityFeed" class="activity-feed loading-block"></div></section>
+    </div>
+  </section>
+
+  <section id="view-trains" class="view">
+    <div class="filter-bar"><label>运营日期<input id="trainDate" type="date" value="2026-09-07"></label><label class="grow">搜索车次<input id="trainSearch" placeholder="输入车次号"></label><button id="loadTrains" class="action-primary">查询车次</button></div>
+    <div class="split-layout"><section class="admin-card table-card"><div class="card-head"><div><h2>运行车次</h2><p id="trainCount">读取中…</p></div><span class="auto-refresh"><i></i>实时数据</span></div><div class="table-scroll"><table><thead><tr><th>车次</th><th>运行区间</th><th>状态</th><th>席位</th><th>占用率</th><th>操作</th></tr></thead><tbody id="trainRows"></tbody></table></div></section><section class="admin-card detail-card"><div id="seatDetail" class="detail-empty"><span>▦</span><h3>选择一个车次</h3><p>查看各车厢、席别与实时库存</p></div></section></div>
+  </section>
+
+  <section id="view-orders" class="view">
+    <div class="subtabs"><button class="active" data-sub="orderTable">订单流水</button><button data-sub="passengerTable">乘客档案</button></div>
+    <section id="orderTable" class="admin-card table-card subview active"><div class="card-head"><div><h2>订单流水</h2><p>预占、支付、取消、超时与退款全生命周期</p></div><label class="inline-filter">状态<select id="orderStatus"><option value="">全部状态</option><option>PENDING_PAYMENT</option><option>PAID</option><option>CANCELLED</option><option>TIMEOUT</option><option>REFUNDED</option></select></label></div><div class="table-scroll"><table><thead><tr><th>订单号</th><th>乘客 / 用户</th><th>行程</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th></tr></thead><tbody id="orderRows"></tbody></table></div></section>
+    <section id="passengerTable" class="admin-card table-card subview"><div class="card-head"><div><h2>乘客档案</h2><p>隐私安全的乘车人账户概览</p></div><input id="passengerSearch" class="compact-search" placeholder="搜索用户名或乘车人"></div><div class="table-scroll"><table><thead><tr><th>乘客 ID</th><th>乘车人</th><th>所属用户</th><th>账户状态</th><th>历史订单</th><th>候补次数</th><th>注册时间</th></tr></thead><tbody id="passengerRows"></tbody></table></div></section>
+  </section>
+
+  <section id="view-waitlist" class="view">
+    <div class="wait-summary"><div><span>当前排队</span><b id="wWaiting">—</b></div><div><span>已兑现</span><b id="wMatched">—</b></div><div><span>公平保护</span><b id="wProtected">—</b></div><div><span>累计跳过</span><b id="wSkipped">—</b></div></div>
+    <section class="admin-card table-card"><div class="card-head"><div><h2>候补队列监控</h2><p>公平保护请求优先，队列按创建时间稳定排序</p></div><button id="loadWaits" class="action-secondary">刷新队列</button></div><div class="table-scroll"><table><thead><tr><th>队列位次</th><th>请求号</th><th>车次 / 席别</th><th>区间</th><th>人数</th><th>状态</th><th>重试 / 跳过</th><th>截止时间</th></tr></thead><tbody id="waitRows"></tbody></table></div></section>
+  </section>
+
+  <section id="view-ai" class="view">
+    <div class="ai-hero"><div class="ai-orb">AI</div><div><span>LOAD TESTING LAB</span><h2>AI 订票员 · 真实库存压测</h2><p>模拟用户并发调用数据库购票流程，用于验证位图库存、防超卖与公平候补。</p></div><div class="ai-safety"><i></i><span>实验环境</span><small>操作会真实改变演示数据库库存</small></div></div>
+    <div class="ai-layout">
+      <section class="admin-card ai-config"><div class="card-head"><div><h2>创建模拟任务</h2><p>选择行为策略与负载参数</p></div></div>
+        <div class="mode-cards"><label><input type="radio" name="aiMode" value="random" checked><span><i>⌘</i><b>随机抢票</b><small>随机选择车次、区间与席别</small></span></label><label><input type="radio" name="aiMode" value="targeted"><span><i>◎</i><b>定向压测</b><small>集中消耗指定车次席别</small></span></label></div>
+        <div id="targetFields" class="target-fields disabled"><label>目标车次<select id="aiRun"></select></label><label>目标席别<select id="aiSeatType"><option value="">先选择车次</option></select></label></div>
+        <div class="form-grid"><label>模拟用户数<input id="aiUsers" type="number" min="1" max="500" value="50"><small>1–500 个独立 AI 乘客</small></label><label>并发线程数<input id="aiConcurrency" type="number" min="1" max="30" value="8"><small>建议不超过本机 CPU × 2</small></label><label>自动支付率<div class="range-line"><input id="aiPayRate" type="range" min="0" max="100" value="70"><output id="payOutput">70%</output></div><small>未支付订单保持预占状态</small></label><label class="check-row"><input id="aiWaitlist" type="checkbox" checked><span><b>余票不足时加入候补</b><small>用于产生并检验公平候补队列</small></span></label></div>
+        <div class="notice"><b>实验提示</b><span>该操作调用真实存储过程，生成的 AI 用户、订单及候补记录会保留在数据库中，便于课程验收。</span></div><button id="startAI" class="run-button"><span>▶</span> 启动 AI 订票任务</button>
+      </section>
+      <section class="admin-card ai-monitor"><div class="card-head"><div><h2>任务监视器</h2><p>实时追踪执行进度与结果</p></div><span id="jobState" class="job-state idle">待启动</span></div><div id="jobEmpty" class="job-empty"><div>✦</div><h3>尚无运行任务</h3><p>配置左侧参数并启动一次模拟</p></div><div id="jobProgress" class="job-progress hidden"><div class="progress-ring" id="progressRing"><div><b id="jobPercent">0%</b><small>完成</small></div></div><div class="job-stats"><div><span>成功占座</span><b id="jHeld">0</b></div><div><span>完成支付</span><b id="jPaid">0</b></div><div><span>进入候补</span><b id="jWaited">0</b></div><div><span>请求失败</span><b id="jFailed">0</b></div></div><div class="throughput"><span>实时吞吐</span><b id="jRps">0.0 req/s</b></div><div id="jobErrors" class="job-errors"></div></div></section>
+    </div>
+    <section class="admin-card history-card"><div class="card-head"><div><h2>实验任务记录</h2><p>当前服务进程内的 AI 压测历史</p></div></div><div class="table-scroll"><table><thead><tr><th>任务 ID</th><th>模式</th><th>规模 / 并发</th><th>占座</th><th>支付</th><th>候补</th><th>失败</th><th>耗时</th><th>状态</th></tr></thead><tbody id="jobRows"><tr><td colspan="9" class="empty-cell">暂无任务记录</td></tr></tbody></table></div></section>
+  </section>
+</main><div id="adminToast" class="admin-toast"></div><script src="/admin.js"></script></body></html>
