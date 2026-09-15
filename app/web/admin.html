@@ -9,7 +9,7 @@
     <button data-view="waitlist"><i>◷</i><span>候补队列</span><em id="waitBadge">0</em></button>
     <button data-view="ai"><i>✦</i><span>AI 订票员</span><b class="new-badge">LAB</b></button>
   </nav>
-  <div class="side-bottom"><a href="/">← 返回用户端</a><div class="admin-profile"><span>管</span><div><b>系统管理员</b><small>教学演示环境</small></div><i></i></div></div>
+  <div class="side-bottom"><div class="admin-profile"><span>管</span><div><b>系统管理员</b><small>独立运营管理环境</small></div><i></i></div></div>
 </aside>
 <main class="admin-main">
   <header><div><h1 id="viewTitle">运营总览</h1><p id="viewSubtitle">实时掌握铁路客票系统运行状态</p></div><div class="header-actions"><div id="adminHealth" class="system-state"><i></i><span>系统检测中</span></div><span id="clock"></span><button id="refreshAll" title="刷新当前页面">↻</button></div></header>
@@ -56,5 +56,6 @@
       <section class="admin-card ai-monitor"><div class="card-head"><div><h2>任务监视器</h2><p>实时追踪执行进度与结果</p></div><span id="jobState" class="job-state idle">待启动</span></div><div id="jobEmpty" class="job-empty"><div>✦</div><h3>尚无运行任务</h3><p>配置左侧参数并启动一次模拟</p></div><div id="jobProgress" class="job-progress hidden"><div class="progress-ring" id="progressRing"><div><b id="jobPercent">0%</b><small>完成</small></div></div><div class="job-stats"><div><span>成功占座</span><b id="jHeld">0</b></div><div><span>完成支付</span><b id="jPaid">0</b></div><div><span>进入候补</span><b id="jWaited">0</b></div><div><span>请求失败</span><b id="jFailed">0</b></div></div><div class="throughput"><span>实时吞吐</span><b id="jRps">0.0 req/s</b></div><div id="jobErrors" class="job-errors"></div></div></section>
     </div>
     <section class="admin-card history-card"><div class="card-head"><div><h2>实验任务记录</h2><p>当前服务进程内的 AI 压测历史</p></div></div><div class="table-scroll"><table><thead><tr><th>任务 ID</th><th>模式</th><th>规模 / 并发</th><th>占座</th><th>支付</th><th>候补</th><th>失败</th><th>耗时</th><th>状态</th></tr></thead><tbody id="jobRows"><tr><td colspan="9" class="empty-cell">暂无任务记录</td></tr></tbody></table></div></section>
+    <section class="admin-card ai-orders-card"><div class="card-head"><div><h2>AI 用户订单与退票</h2><p>精确操作某位 AI 乘客，或按车次随机批量释放席位</p></div><div class="ai-order-filters"><select id="aiRefundRun"><option value="">全部车次</option></select><input id="aiOrderSearch" placeholder="搜索 AI 乘客"><button id="refreshAiOrders" class="action-secondary">查询</button></div></div><div class="batch-refund"><div><b>按车次随机批量退票</b><span>从已支付或待支付的 AI 订单中随机选择</span></div><select id="batchRefundRun"><option value="">选择目标车次</option></select><label>随机人数<input id="batchRefundCount" type="number" min="1" max="100" value="5"></label><button id="batchRefundButton">执行批量退票</button></div><div class="table-scroll"><table><thead><tr><th>AI 乘客</th><th>订单号</th><th>车次 / 区间</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="aiOrderRows"><tr><td colspan="8" class="empty-cell">进入 AI 订票员后自动读取</td></tr></tbody></table></div></section>
   </section>
 </main><div id="adminToast" class="admin-toast"></div><script src="/admin.js"></script></body></html>

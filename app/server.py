@@ -136,6 +136,70 @@ def direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     )
 
 
+def scoped_direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
+    """Search a station pair or every valid station pair inside two cities."""
+    from_city = str(params.get("fromCity", [""])[0]).strip()
+    to_city = str(params.get("toCity", [""])[0]).strip()
+    if not from_city or not to_city or len(from_city) > 50 or len(to_city) > 50:
+        raise ApiError("请选择出发城市和到达城市")
+    from_station_raw = params.get("fromStation", [""])[0]
+    to_station_raw = params.get("toStation", [""])[0]
+    from_station = integer(from_station_raw, "fromStation") if from_station_raw else None
+    to_station = integer(to_station_raw, "toStation") if to_station_raw else None
+    passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
+    service_date = params.get("date", ["2026-09-07"])[0]
+    if not DATE_RE.match(service_date):
+        raise ApiError("date 格式必须为 YYYY-MM-DD")
+    if from_city == to_city and from_station is None and to_station is None:
+        raise ApiError("出发城市与到达城市不能相同")
+    from_filter = f" AND origin.station_id={from_station}" if from_station else ""
+    to_filter = f" AND destination.station_id={to_station}" if to_station else ""
+    rows = mysql_rows(
+        "SELECT tr.run_id,tr.train_no,t.train_type,origin.station_id AS from_station_id,"
+        "origin_station.station_name AS from_station_name,origin.station_order AS from_order,"
+        "origin.departure_at,destination.station_id AS to_station_id,"
+        "destination_station.station_name AS to_station_name,destination.station_order AS to_order,"
+        "destination.arrival_at,TIMESTAMPDIFF(MINUTE,origin.departure_at,destination.arrival_at) duration_minutes,"
+        "CASE WHEN origin.station_order=1 THEN '始' ELSE '过' END AS from_marker,"
+        "CASE WHEN destination.station_order=tr.stop_count THEN '终' ELSE '过' END AS to_marker,"
+        "st.seat_type_id,st.seat_type_code,st.seat_type_name,st.display_order,"
+        "rf.journey_distance_km,rf.amount,COUNT(*) total_seats,"
+        "SUM((trs.occupied_mask & fn_segment_mask(origin.station_order,destination.station_order))=0) available_seats,"
+        f"SUM((trs.occupied_mask & fn_segment_mask(origin.station_order,destination.station_order))=0)>={passengers} can_fulfill "
+        "FROM train_run tr JOIN train t ON t.train_no=tr.train_no "
+        "JOIN v_train_run_stop origin ON origin.run_id=tr.run_id "
+        "JOIN station origin_station ON origin_station.station_id=origin.station_id "
+        "JOIN v_train_run_stop destination ON destination.run_id=tr.run_id "
+        " AND destination.station_order>origin.station_order "
+        "JOIN station destination_station ON destination_station.station_id=destination.station_id "
+        "JOIN run_fare rf ON rf.run_id=tr.run_id AND rf.from_order=origin.station_order "
+        " AND rf.to_order=destination.station_order AND rf.sale_status='OPEN' "
+        "JOIN seat_type st ON st.seat_type_id=rf.seat_type_id AND st.active=TRUE "
+        "JOIN train_run_seat trs ON trs.run_id=tr.run_id "
+        "JOIN seat s ON s.seat_id=trs.seat_id AND s.seat_type_id=rf.seat_type_id AND s.active=TRUE "
+        "JOIN carriage_template ct ON ct.carriage_id=s.carriage_id "
+        " AND ct.formation_id=tr.formation_id AND ct.active=TRUE "
+        f"WHERE tr.service_date='{service_date}' AND tr.run_status='ON_SALE' "
+        f"AND origin_station.city={sql_text(from_city)} AND destination_station.city={sql_text(to_city)}"
+        f"{from_filter}{to_filter} "
+        "AND origin.departure_at IS NOT NULL AND destination.arrival_at IS NOT NULL "
+        "GROUP BY tr.run_id,tr.train_no,t.train_type,origin.station_id,origin_station.station_name,"
+        "origin.station_order,origin.departure_at,destination.station_id,destination_station.station_name,"
+        "destination.station_order,destination.arrival_at,tr.stop_count,st.seat_type_id,st.seat_type_code,"
+        "st.seat_type_name,st.display_order,rf.journey_distance_km,rf.amount "
+        "ORDER BY origin.departure_at,tr.train_no,st.display_order;",
+        timeout=30,
+    )
+    # A train may stop at more than one station in a selected city. Keep one
+    # deterministic OD product per run and seat class for a concise train list.
+    unique: Dict[tuple, Dict[str, Any]] = {}
+    for row in rows:
+        key = (row["run_id"], row["seat_type_id"])
+        if key not in unique:
+            unique[key] = row
+    return list(unique.values())
+
+
 def transfer_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     origin = integer(params.get("from", [None])[0], "from")
     destination = integer(params.get("to", [None])[0], "to")
@@ -283,6 +347,30 @@ def run_ai_job(job_id: str, config: Dict[str, Any]) -> None:
             AI_JOBS[job_id]["errors"].append(str(exc)[:180])
 
 
+def ai_order_action(order_id: int) -> Dict[str, Any]:
+    rows = mysql_rows(
+        "SELECT o.order_id,o.user_id,o.order_status FROM ticket_order o "
+        "JOIN app_user u ON u.user_id=o.user_id "
+        f"WHERE o.order_id={order_id} AND u.username LIKE 'ai\\_%';"
+    )
+    if not rows:
+        raise ApiError("只能操作 AI 订票员生成的订单", 403)
+    order = rows[0]
+    user_id = int(order["user_id"])
+    if order["order_status"] == "PAID":
+        result = mysql_rows(
+            "CALL sp_refund_paid_order("
+            f"{user_id},{order_id},'ADMIN-AI-REF-{uuid.uuid4().hex}',"
+            "'ADMIN_LOAD_TEST',@rid);SELECT @rid AS refund_id;"
+        )
+        return {"order_id": order_id, "action": "REFUNDED",
+                "refund_id": result[-1].get("refund_id") if result else None}
+    if order["order_status"] == "PENDING_PAYMENT":
+        mysql_rows(f"CALL sp_cancel_unpaid_order({user_id},{order_id});")
+        return {"order_id": order_id, "action": "CANCELLED"}
+    raise ApiError("该 AI 订单当前状态不可退票或取消", 409)
+
+
 class Handler(SimpleHTTPRequestHandler):
     server_version = "CR12306Demo/1.0"
 
@@ -306,6 +394,10 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(mysql_rows(
                 "SELECT station_id,station_name,city FROM station ORDER BY city,station_name"
             ))
+        elif method == "GET" and parsed.path == "/api/locations":
+            self.send_json(mysql_rows(
+                "SELECT station_id,station_name,city FROM station ORDER BY city,station_name"
+            ))
         elif method == "GET" and re.match(r"^/api/runs/\d+/stops$", parsed.path):
             run_id = integer(parsed.path.split("/")[3], "runId")
             self.send_json(mysql_rows(
@@ -318,6 +410,8 @@ class Handler(SimpleHTTPRequestHandler):
             ))
         elif method == "GET" and parsed.path == "/api/search/direct":
             self.send_json(direct_search(params))
+        elif method == "GET" and parsed.path == "/api/search/scoped-direct":
+            self.send_json(scoped_direct_search(params))
         elif method == "GET" and parsed.path == "/api/search/transfer":
             self.send_json(transfer_search(params))
         elif method == "GET" and parsed.path == "/api/orders":
@@ -339,6 +433,37 @@ class Handler(SimpleHTTPRequestHandler):
                 "SELECT @uid AS user_id,@pid AS passenger_id;"
             )
             self.send_json(rows[-1], HTTPStatus.CREATED)
+        elif method == "POST" and parsed.path == "/api/auth/simple":
+            body = json_body(self)
+            display_name = str(body.get("name", "")).strip()
+            password_hash = str(body.get("passwordHash", "")).strip().lower()
+            if not display_name or len(display_name) > 80:
+                raise ApiError("请输入姓名")
+            if not re.fullmatch(r"[0-9a-f]{64}", password_hash):
+                raise ApiError("密码摘要无效")
+            name_digest = hashlib.sha256(display_name.encode("utf-8")).hexdigest()
+            username = "user_" + name_digest[:24]
+            existing = mysql_rows(
+                "SELECT u.user_id,u.password_hash,p.passenger_id,p.passenger_name "
+                "FROM app_user u LEFT JOIN passenger p ON p.owner_user_id=u.user_id "
+                f"WHERE u.username={sql_text(username)} ORDER BY p.passenger_id LIMIT 1;"
+            )
+            if existing:
+                if not hashlib.compare_digest(str(existing[0]["password_hash"]), password_hash):
+                    raise ApiError("姓名或密码错误", 401)
+                self.send_json({"user_id": existing[0]["user_id"],
+                                "passenger_id": existing[0]["passenger_id"],
+                                "display_name": existing[0]["passenger_name"]})
+            else:
+                rows = mysql_rows(
+                    "CALL sp_register_demo_account("
+                    f"{sql_text(username)},{sql_text(password_hash)},{sql_text(display_name)},"
+                    f"{sql_text('USER-' + name_digest)},@uid,@pid);"
+                    "SELECT @uid AS user_id,@pid AS passenger_id;"
+                )
+                result = rows[-1]
+                result["display_name"] = display_name
+                self.send_json(result, HTTPStatus.CREATED)
         elif method == "POST" and parsed.path == "/api/orders":
             body = json_body(self)
             user_id = integer(body.get("userId"), "userId")
@@ -357,6 +482,31 @@ class Handler(SimpleHTTPRequestHandler):
                 f"{pos_sql},{1 if fallback else 0},JSON_ARRAY({passenger_id}),"
                 f"'{key}',600,@oid);SELECT @oid AS order_id;"
             )
+            self.send_json(rows[-1], HTTPStatus.CREATED)
+        elif method == "POST" and parsed.path == "/api/orders/confirm":
+            body = json_body(self)
+            user_id = integer(body.get("userId"), "userId")
+            passenger_id = integer(body.get("passengerId"), "passengerId")
+            run_id = integer(body.get("runId"), "runId")
+            from_order = integer(body.get("fromOrder"), "fromOrder", 1, 64)
+            to_order = integer(body.get("toOrder"), "toOrder", 2, 64)
+            seat_type_id = integer(body.get("seatTypeId"), "seatTypeId", 1, 65535)
+            preferred = position(body.get("position"))
+            pos_sql = "NULL" if preferred is None else sql_text(preferred)
+            order_key = "WEB-CONFIRM-" + uuid.uuid4().hex
+            pay_request = "PAY-" + uuid.uuid4().hex
+            trade_no = "TRADE-" + uuid.uuid4().hex
+            rows = mysql_rows(
+                "CALL sp_create_order_hold("
+                f"{user_id},{run_id},{from_order},{to_order},{seat_type_id},{pos_sql},1,"
+                f"JSON_ARRAY({passenger_id}),'{order_key}',600,@oid);"
+                "SET @amount=(SELECT total_amount FROM ticket_order WHERE order_id=@oid);"
+                "CALL sp_confirm_order_payment("
+                f"{user_id},@oid,'{pay_request}','{trade_no}',@amount,@payment_id);"
+                "SELECT d.*,@payment_id AS payment_id FROM v_order_detail d WHERE d.order_id=@oid;"
+            )
+            if not rows:
+                raise ApiError("订单确认后未返回详情", 500)
             self.send_json(rows[-1], HTTPStatus.CREATED)
         elif method == "POST" and re.match(r"^/api/orders/\d+/(pay|cancel|refund)$", parsed.path):
             body = json_body(self)
@@ -559,6 +709,25 @@ class Handler(SimpleHTTPRequestHandler):
             with AI_JOBS_LOCK:
                 jobs = [public_ai_job(job) for job in reversed(list(AI_JOBS.values()))]
             self.send_json({"runs": runs, "seat_types": seat_types, "jobs": jobs[:30]})
+        elif method == "GET" and parsed.path == "/api/admin/ai/orders":
+            run_raw = params.get("runId", [""])[0]
+            run_id = integer(run_raw, "runId") if run_raw else None
+            query = str(params.get("q", [""])[0]).strip()[:80]
+            filters = ["u.username LIKE 'ai\\_%'"]
+            if run_id:
+                filters.append(f"d.run_id={run_id}")
+            if query:
+                filters.append(
+                    f"(d.passenger_name LIKE CONCAT('%',{sql_text(query)},'%') "
+                    f"OR u.username LIKE CONCAT('%',{sql_text(query)},'%'))"
+                )
+            self.send_json(mysql_rows(
+                "SELECT d.order_id,d.order_no,d.order_status,d.total_amount,d.created_at,"
+                "d.passenger_name,u.username,d.user_id,d.train_no,d.run_id,d.from_station_name,"
+                "d.to_station_name,d.seat_type_name,d.carriage_no,d.seat_no,d.allocated_position_code "
+                "FROM v_order_detail d JOIN app_user u ON u.user_id=d.user_id WHERE " +
+                " AND ".join(filters) + " ORDER BY d.created_at DESC LIMIT 500;"
+            ))
         elif method == "GET" and parsed.path == "/api/admin/ai/jobs":
             with AI_JOBS_LOCK:
                 jobs = [public_ai_job(job) for job in reversed(list(AI_JOBS.values()))]
@@ -597,6 +766,28 @@ class Handler(SimpleHTTPRequestHandler):
                 AI_JOBS[job_id] = job
             threading.Thread(target=run_ai_job, args=(job_id, config), daemon=True).start()
             self.send_json(public_ai_job(job), HTTPStatus.ACCEPTED)
+        elif method == "POST" and re.match(r"^/api/admin/ai/orders/\d+/refund$", parsed.path):
+            order_id = integer(parsed.path.split("/")[5], "orderId")
+            self.send_json(ai_order_action(order_id))
+        elif method == "POST" and parsed.path == "/api/admin/ai/refund-batch":
+            body = json_body(self)
+            run_id = integer(body.get("runId"), "runId")
+            count = integer(body.get("count"), "count", 1, 100)
+            candidates = mysql_rows(
+                "SELECT DISTINCT d.order_id FROM v_order_detail d "
+                "JOIN app_user u ON u.user_id=d.user_id "
+                f"WHERE u.username LIKE 'ai\\_%' AND d.run_id={run_id} "
+                "AND d.order_status IN ('PAID','PENDING_PAYMENT') ORDER BY RAND() "
+                f"LIMIT {count};"
+            )
+            results, errors = [], []
+            for candidate in candidates:
+                try:
+                    results.append(ai_order_action(int(candidate["order_id"])))
+                except Exception as exc:
+                    errors.append(str(exc)[:160])
+            self.send_json({"requested": count, "selected": len(candidates),
+                            "completed": len(results), "results": results, "errors": errors})
         else:
             raise ApiError("接口不存在", 404)
 

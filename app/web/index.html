@@ -3,65 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#1677ff">
-  <title>RailFlow · 智慧铁路订票</title>
+  <meta name="theme-color" content="#1783f7">
+  <title>CR12306 · 智慧出行</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
-<body class="user-page">
-  <header class="nav-shell">
-    <a class="brand" href="/"><span class="brand-mark">R</span><span><b>RailFlow</b><small>长三角智慧铁路</small></span></a>
-    <nav><a class="active" href="#tickets">车票预订</a><a href="#orders">我的订单</a><a href="#service">出行服务</a></nav>
-    <div class="nav-actions"><span id="health" class="live-pill"><i></i>系统连接中</span><a class="admin-link" href="/admin.html">管理控制台 →</a></div>
-  </header>
+<body>
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-visual">
+      <div class="auth-brand"><span>CR</span><div><b>CR12306</b><small>智慧铁路客票系统</small></div></div>
+      <div class="auth-copy"><span>CHINA RAILWAY · SMART TRAVEL</span><h1>让每一次出发<br><em>简单而确定</em></h1><p>实时余票 · 智能选座 · 公平候补</p></div>
+      <div class="auth-rail"><i></i><i></i><i></i><i></i><b>➤</b></div>
+      <div class="auth-cityline"><span>上海</span><span>苏州</span><span>南京</span><span>杭州</span></div>
+    </div>
+    <div class="auth-panel">
+      <form id="loginForm" class="login-card">
+        <div class="mobile-brand"><span>CR</span><b>CR12306</b></div>
+        <span class="eyebrow">WELCOME ABOARD</span><h2>你好，欢迎出发</h2><p>首次登录将自动为你创建乘车账户</p>
+        <label><span>姓名</span><div class="input-shell"><i>人</i><input id="loginName" autocomplete="name" maxlength="80" placeholder="请输入乘车人姓名" required></div></label>
+        <label><span>密码</span><div class="input-shell"><i>锁</i><input id="loginPassword" type="password" autocomplete="current-password" minlength="4" placeholder="请输入密码（至少 4 位）" required><button id="togglePassword" type="button">显示</button></div></label>
+        <button id="loginButton" class="login-button" type="submit">登录 / 注册 <b>→</b></button>
+        <div class="remember-note"><i>✓</i><span>登录信息会保存在本设备，下次自动进入</span></div>
+      </form>
+    </div>
+  </section>
 
-  <main class="user-main">
-    <section class="user-hero">
-      <div class="hero-copy"><span class="hero-kicker">SMART RAILWAY · 一站式出行</span><h1>下一站，<em>如期抵达</em></h1><p>实时区间余票、智能选座与公平候补，让每一次出发都清晰从容。</p></div>
-      <div class="route-art" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><div class="rail-line"><i></i><i></i><i></i><i></i></div><div class="train-art">➤</div></div>
-    </section>
+  <div id="userApp" class="user-app hidden">
+    <header class="user-header">
+      <button class="header-brand" data-home><span>CR</span><div><b>CR12306</b><small>智慧铁路客票系统</small></div></button>
+      <nav><button class="active" data-home>车票预订</button><button id="showOrders">我的订单</button><button disabled>出行服务</button></nav>
+      <div class="user-profile"><span id="profileAvatar">旅</span><div><b id="profileName">乘车人</b><small>已登录</small></div><button id="logout" title="切换用户">退出</button></div>
+    </header>
 
-    <section id="tickets" class="search-panel">
-      <div class="trip-tabs"><button class="active">单程</button><button disabled>往返 <small>即将开放</small></button></div>
-      <div class="search-grid">
-        <label class="station-field"><span>出发城市</span><select id="fromStation"></select></label>
-        <button id="swap" class="swap" title="交换出发与到达站">⇄</button>
-        <label class="station-field"><span>到达城市</span><select id="toStation"></select></label>
-        <label><span>出发日期</span><input id="serviceDate" type="date" value="2026-09-07"></label>
-        <label><span>乘车人数</span><select id="passengers"><option value="1">1 位乘客</option><option value="2">2 位乘客</option><option value="3">3 位乘客</option><option value="4">4 位乘客</option><option value="5">5 位乘客</option></select></label>
-        <button id="search" class="primary search-button"><span>⌕</span> 查询车票</button>
-      </div>
-      <div class="preference-row"><span>座位偏好</span><div id="positionGroup" class="choice-chips"><button class="active" data-value="">不限</button><button data-value="A">A 靠窗</button><button data-value="B">B 中间</button><button data-value="C">C 过道</button><button data-value="D">D 过道</button><button data-value="F">F 靠窗</button></div><label class="switch-label"><input id="fallback" type="checkbox" checked><i></i> 无偏好余票时接受其他座位</label><input id="position" type="hidden" value=""></div>
-    </section>
+    <main>
+      <section id="page-home" class="app-page active">
+        <div class="welcome-hero">
+          <div><span>CR12306 · 长三角智慧出行</span><h1><em id="welcomeName">你好</em>，今天想去哪里？</h1><p>选择城市或指定车站，我们会为你汇总所有符合条件的列车。</p></div>
+          <div class="hero-route"><div class="route-track"><i></i><i></i><i></i><b>➤</b></div><div><span>城市互联</span><strong>准时 · 安全 · 从容</strong></div></div>
+        </div>
 
-    <section class="content-grid">
-      <div class="ticket-column">
-        <div class="result-toolbar"><div><h2>可选车次</h2><p id="summary">选择行程后查询实时余票</p></div><div class="result-tabs"><button class="tab active" data-tab="direct">直达</button><button class="tab" data-tab="transfer">中转</button></div></div>
-        <div id="results" class="results"><div class="welcome-empty"><div>↗</div><h3>从一次查询开始</h3><p>系统将读取数据库中的实时区间库存</p></div></div>
-      </div>
-
-      <aside>
-        <section class="panel account-card">
-          <div class="panel-heading"><span class="panel-icon">人</span><div><h3>乘车账户</h3><p id="accountBadge">尚未登录演示账户</p></div></div>
-          <div id="accountForm" class="account-form">
-            <label>用户名<input id="username" value="demo_user" placeholder="至少 3 位"></label>
-            <label>密码<input id="password" type="password" value="database123"></label>
-            <div class="two-fields"><label>乘车人<input id="passengerName" value="张三"></label><label>模拟证件<input id="documentToken" value="SIM-310000-001"></label></div>
-            <button id="register" class="secondary full">创建 / 恢复账户</button>
+        <section class="journey-card">
+          <div class="card-label"><span>单程</span><i>已锁定演示运营日</i></div>
+          <div class="journey-grid">
+            <div class="place-picker">
+              <span class="field-label">出发地</span>
+              <div class="city-line"><select id="fromCity" aria-label="出发城市"></select><b>市</b></div>
+              <select id="fromStation" class="station-select" aria-label="出发车站"></select>
+            </div>
+            <button id="swapRoute" class="swap-route" title="交换出发地和到达地">⇄</button>
+            <div class="place-picker">
+              <span class="field-label">到达地</span>
+              <div class="city-line"><select id="toCity" aria-label="到达城市"></select><b>市</b></div>
+              <select id="toStation" class="station-select" aria-label="到达车站"></select>
+            </div>
+            <div class="locked-date"><span class="field-label">乘车日期</span><strong>2026 年 09 月 07 日</strong><small><i>锁</i> 数据集运营日，暂不可更改</small><input id="serviceDate" type="hidden" value="2026-09-07"></div>
+            <button id="searchTickets" class="search-button"><i>⌕</i><span>查询车票</span><b>→</b></button>
           </div>
-          <p class="privacy-note">仅存储 SHA-256 摘要，不保存证件明文</p>
+          <div class="scope-tip"><i>i</i><span>车站选择“全部车站”时，将自动查询该城市下的所有铁路客运站。</span></div>
         </section>
 
-        <section id="orders" class="panel orders-panel">
-          <div class="section-title"><div><h3>我的订单</h3><p>最近行程与订单状态</p></div><button id="refreshOrders" class="icon-button" title="刷新">↻</button></div>
-          <div id="ordersList" class="orders"><p class="muted center">登录后显示订单</p></div>
-        </section>
+        <div class="quick-grid"><article><i>准</i><div><b>实时库存</b><span>区间位图精准计算余票</span></div></article><article><i>座</i><div><b>智能分配</b><span>优先偏好，无票自动兜底</span></div></article><article><i>候</i><div><b>公平候补</b><span>稳定队列与跳过保护机制</span></div></article></div>
+      </section>
 
-        <section id="service" class="service-card"><div><b>公平候补</b><p>严格按队列与保护规则兑现</p></div><span>排队透明</span></section>
-      </aside>
-    </section>
-  </main>
-  <footer><span>RailFlow 长三角智慧铁路</span><span>数据库课程设计 · 数据仅用于教学演示</span></footer>
-  <div id="routeModal" class="modal" aria-hidden="true"><div class="modal-card"><button class="modal-close" onclick="closeRoute()">×</button><div id="routeContent"></div></div></div>
+      <section id="page-results" class="app-page page-narrow">
+        <div class="page-top"><button class="back-button" data-home>←</button><div><span>车次查询</span><h1 id="resultRoute">可选车次</h1><p id="resultSummary">正在读取实时余票</p></div><button id="modifySearch" class="soft-button">修改行程</button></div>
+        <div class="result-date"><button disabled>前一天</button><strong><i>日</i> 09 月 07 日 · 周一</strong><button disabled>后一天</button></div>
+        <div id="results" class="train-list"></div>
+      </section>
+
+      <section id="page-confirm" class="app-page page-confirm">
+        <div class="confirm-bar"><button class="back-button" id="backResults">←</button><div><span>确认订单</span><h1>核对行程并选择座位</h1></div><span class="confirm-date">2026-09-07</span></div>
+        <div id="confirmContent"></div>
+      </section>
+    </main>
+    <footer><span>© 2026 CR12306 · 数据库课程设计</span><span>本系统数据仅用于教学演示</span></footer>
+  </div>
+
+  <div id="routeModal" class="modal" aria-hidden="true"><div class="modal-card route-modal-card"><button class="modal-close" data-close="routeModal">×</button><div id="routeContent"></div></div></div>
+  <div id="ordersModal" class="modal" aria-hidden="true"><div class="modal-card orders-modal-card"><button class="modal-close" data-close="ordersModal">×</button><div class="modal-title"><span>MY JOURNEYS</span><h2>我的订单</h2><p>查看已确认行程与历史订单</p></div><div id="ordersList" class="orders-list"></div></div></div>
+  <div id="noticeModal" class="modal" aria-hidden="true"><div class="modal-card notice-modal-card"><div class="notice-icon">!</div><h2 id="noticeTitle">座位分配提示</h2><p id="noticeText"></p><button id="noticeOkay" class="primary-button">我知道了</button></div></div>
   <div id="toast" class="toast"></div>
   <script src="/app.js"></script>
 </body>
