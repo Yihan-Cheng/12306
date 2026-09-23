@@ -18,10 +18,10 @@
     <div class="auth-panel">
       <form id="loginForm" class="login-card">
         <div class="mobile-brand"><span>CR</span><b>CR12306</b></div>
-        <span class="eyebrow">WELCOME ABOARD</span><h2>你好，欢迎出发</h2><p>首次登录将自动为你创建乘车账户</p>
+        <span class="eyebrow">WELCOME ABOARD</span><h2>你好，欢迎出发</h2><p>输入姓名即可进入</p>
         <label><span>姓名</span><div class="input-shell"><i>人</i><input id="loginName" autocomplete="name" maxlength="80" placeholder="请输入乘车人姓名" required></div></label>
-        <label><span>密码</span><div class="input-shell"><i>锁</i><input id="loginPassword" type="password" autocomplete="current-password" minlength="4" placeholder="请输入密码（至少 4 位）" required><button id="togglePassword" type="button">显示</button></div></label>
-        <button id="loginButton" class="login-button" type="submit">登录 / 注册 <b>→</b></button>
+        <div hidden><input id="loginPassword"><button id="togglePassword" type="button"></button></div>
+        <button id="loginButton" class="login-button" type="submit">进入系统 <b>→</b></button>
         <div class="remember-note"><i>✓</i><span>登录信息会保存在本设备，下次自动进入</span></div>
       </form>
     </div>
@@ -37,12 +37,12 @@
     <main>
       <section id="page-home" class="app-page active">
         <div class="welcome-hero">
-          <div><span>CR12306 · 长三角智慧出行</span><h1><em id="welcomeName">你好</em>，今天想去哪里？</h1><p>选择城市或指定车站，我们会为你汇总所有符合条件的列车。</p></div>
+          <div><span>CR12306 · 长三角智慧出行</span><h1><em id="welcomeName">你好</em>，今天想去哪里？</h1></div>
           <div class="hero-route"><div class="route-track"><i></i><i></i><i></i><b>➤</b></div><div><span>城市互联</span><strong>准时 · 安全 · 从容</strong></div></div>
         </div>
 
         <section class="journey-card">
-          <div class="card-label"><span>单程</span><i>已锁定演示运营日</i></div>
+          <div class="card-label"><span>单程</span></div>
           <div class="journey-grid">
             <div class="place-picker">
               <span class="field-label">出发地</span>
@@ -55,10 +55,9 @@
               <div class="city-line"><select id="toCity" aria-label="到达城市"></select><b>市</b></div>
               <select id="toStation" class="station-select" aria-label="到达车站"></select>
             </div>
-            <div class="locked-date"><span class="field-label">乘车日期</span><strong>2026 年 09 月 07 日</strong><small><i>锁</i> 数据集运营日，暂不可更改</small><input id="serviceDate" type="hidden" value="2026-09-07"></div>
+            <div class="locked-date"><span class="field-label">乘车日期</span><strong>2026 年 09 月 07 日</strong><input id="serviceDate" type="hidden" value="2026-09-07"></div>
             <button id="searchTickets" class="search-button"><i>⌕</i><span>查询车票</span><b>→</b></button>
           </div>
-          <div class="scope-tip"><i>i</i><span>车站选择“全部车站”时，将自动查询该城市下的所有铁路客运站。</span></div>
         </section>
 
         <div class="quick-grid"><article><i>准</i><div><b>实时库存</b><span>区间位图精准计算余票</span></div></article><article><i>座</i><div><b>智能分配</b><span>优先偏好，无票自动兜底</span></div></article><article><i>候</i><div><b>公平候补</b><span>稳定队列与跳过保护机制</span></div></article></div>
@@ -71,7 +70,7 @@
       </section>
 
       <section id="page-confirm" class="app-page page-confirm">
-        <div class="confirm-bar"><button class="back-button" id="backResults">←</button><div><span>确认订单</span><h1>核对行程并选择座位</h1></div><span class="confirm-date">2026-09-07</span></div>
+        <div class="confirm-bar"><button class="back-button" id="backResults">←</button><div><span id="confirmStepLabel">确认订单</span><h1 id="confirmPageTitle">核对行程并选择座位</h1></div><span class="confirm-date">2026-09-07</span></div>
         <div id="confirmContent"></div>
       </section>
     </main>
@@ -79,7 +78,7 @@
   </div>
 
   <div id="routeModal" class="modal" aria-hidden="true"><div class="modal-card route-modal-card"><button class="modal-close" data-close="routeModal">×</button><div id="routeContent"></div></div></div>
-  <div id="ordersModal" class="modal" aria-hidden="true"><div class="modal-card orders-modal-card"><button class="modal-close" data-close="ordersModal">×</button><div class="modal-title"><span>MY JOURNEYS</span><h2>我的订单</h2><p>查看已确认行程与历史订单</p></div><div id="ordersList" class="orders-list"></div></div></div>
+  <div id="ordersModal" class="modal" aria-hidden="true"><div class="modal-card orders-modal-card"><button class="modal-close" data-close="ordersModal">×</button><div class="modal-title"><span>MY JOURNEYS</span><h2>我的订单</h2></div><div id="ordersList" class="orders-list"></div></div></div>
   <div id="noticeModal" class="modal" aria-hidden="true"><div class="modal-card notice-modal-card"><div class="notice-icon">!</div><h2 id="noticeTitle">座位分配提示</h2><p id="noticeText"></p><button id="noticeOkay" class="primary-button">我知道了</button></div></div>
   <div id="toast" class="toast"></div>
   <script src="/app.js"></script>

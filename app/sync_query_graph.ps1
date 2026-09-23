@@ -2,6 +2,13 @@
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
 
+$stationExport = @"
+SELECT station_id,station_name,COALESCE(city,'')
+INTO OUTFILE '/var/lib/mysql-files/query_stations.tsv'
+FIELDS TERMINATED BY '\t' LINES TERMINATED BY '\n'
+FROM station ORDER BY station_id;
+"@
+
 $runExport = @"
 SELECT tr.run_id,tr.train_no,DATE_FORMAT(tr.service_date,'%Y-%m-%d'),t.train_type
 INTO OUTFILE '/var/lib/mysql-files/query_train_runs.tsv'
@@ -18,31 +25,42 @@ FIELDS TERMINATED BY '\t' LINES TERMINATED BY '\n'
 FROM v_train_run_stop ORDER BY run_id,station_order;
 "@
 
-docker exec mysql84 rm -f /var/lib/mysql-files/query_train_runs.tsv /var/lib/mysql-files/query_calls.tsv
+docker exec mysql84 rm -f /var/lib/mysql-files/query_stations.tsv /var/lib/mysql-files/query_train_runs.tsv /var/lib/mysql-files/query_calls.tsv
 if ($LASTEXITCODE) { throw '清理 MySQL 临时导出失败' }
-docker exec mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 -D CR12306 -e $runExport
+docker exec -e MYSQL_PWD=123456 mysql84 mysql --default-character-set=utf8mb4 -uroot -D CR12306 -e $stationExport
+if ($LASTEXITCODE) { throw '导出 Station 失败' }
+docker exec -e MYSQL_PWD=123456 mysql84 mysql --default-character-set=utf8mb4 -uroot -D CR12306 -e $runExport
 if ($LASTEXITCODE) { throw '导出 TrainRun 失败' }
-docker exec mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 -D CR12306 -e $callExport
+docker exec -e MYSQL_PWD=123456 mysql84 mysql --default-character-set=utf8mb4 -uroot -D CR12306 -e $callExport
 if ($LASTEXITCODE) { throw '导出 CALLS_AT 失败' }
 
 $importDir = Join-Path $PSScriptRoot '.neo4j-import'
 New-Item -ItemType Directory -Force -Path $importDir | Out-Null
+docker cp mysql84:/var/lib/mysql-files/query_stations.tsv (Join-Path $importDir 'query_stations.tsv')
+if ($LASTEXITCODE) { throw '复制 Station 导出失败' }
 docker cp mysql84:/var/lib/mysql-files/query_train_runs.tsv (Join-Path $importDir 'query_train_runs.tsv')
 if ($LASTEXITCODE) { throw '复制 TrainRun 导出失败' }
 docker cp mysql84:/var/lib/mysql-files/query_calls.tsv (Join-Path $importDir 'query_calls.tsv')
 if ($LASTEXITCODE) { throw '复制 CALLS_AT 导出失败' }
 docker exec neo4j-12306 mkdir -p /var/lib/neo4j/import
 if ($LASTEXITCODE) { throw '创建 Neo4j import 目录失败' }
+docker cp (Join-Path $importDir 'query_stations.tsv') neo4j-12306:/var/lib/neo4j/import/query_stations.tsv
+if ($LASTEXITCODE) { throw '复制 Station 到 Neo4j 失败' }
 docker cp (Join-Path $importDir 'query_train_runs.tsv') neo4j-12306:/var/lib/neo4j/import/query_train_runs.tsv
 if ($LASTEXITCODE) { throw '复制 TrainRun 到 Neo4j 失败' }
 docker cp (Join-Path $importDir 'query_calls.tsv') neo4j-12306:/var/lib/neo4j/import/query_calls.tsv
 if ($LASTEXITCODE) { throw '复制 CALLS_AT 到 Neo4j 失败' }
 
 $cypher = @"
+CREATE CONSTRAINT station_id_unique IF NOT EXISTS
+FOR (s:Station) REQUIRE s.station_id IS UNIQUE;
 CREATE CONSTRAINT train_run_id_unique IF NOT EXISTS
 FOR (r:TrainRun) REQUIRE r.run_id IS UNIQUE;
 CREATE INDEX train_run_service_date IF NOT EXISTS
 FOR (r:TrainRun) ON (r.service_date);
+LOAD CSV FROM 'file:///query_stations.tsv' AS row FIELDTERMINATOR '\t'
+MERGE (s:Station {station_id: toInteger(row[0])})
+SET s.name = row[1], s.station_name = row[1], s.city = row[2];
 MATCH (:TrainRun)-[c:CALLS_AT]->() DELETE c;
 MATCH (r:TrainRun) DELETE r;
 LOAD CSV FROM 'file:///query_train_runs.tsv' AS row FIELDTERMINATOR '\t'

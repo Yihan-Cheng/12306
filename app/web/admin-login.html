@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101c2d">
+  <title>RailFlow Control · 管理员登录</title>
+  <link rel="stylesheet" href="/admin-login.css">
+</head>
+<body>
+  <main class="login-shell">
+    <section class="login-visual">
+      <div class="brand"><span>R</span><div><b>RailFlow Control</b><small>CR12306 运营控制中心</small></div></div>
+      <div class="visual-copy"><span>ISOLATED ADMIN ENVIRONMENT</span><h1>运营数据与乘客端<br>保持严格隔离</h1><p>库存、候补、订单与负载实验只对授权管理员开放。</p></div>
+      <div class="security-list"><span>数据库会话</span><span>HttpOnly Cookie</span><span>PBKDF2 密码</span></div>
+    </section>
+    <section class="login-panel">
+      <form id="adminLoginForm">
+        <span class="eyebrow">ADMIN AUTHENTICATION</span>
+        <h2>登录运营管理端</h2>
+        <p>该入口与普通乘客账户完全独立</p>
+        <label>管理员账号<input id="adminUsername" autocomplete="username" maxlength="64" required></label>
+        <label>管理员密码<input id="adminPassword" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
+        <button id="adminLoginButton" type="submit">安全登录 <b>→</b></button>
+        <div id="loginError" class="login-error"></div>
+        <a href="/">返回乘客购票端</a>
+      </form>
+    </section>
+  </main>
+  <script src="/admin-login.js"></script>
+</body>
+</html>

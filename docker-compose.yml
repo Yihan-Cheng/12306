@@ -1,16 +1,58 @@
 services:
   mysql:
     image: mysql:8.4
-    container_name: cr12306-mysql
+    container_name: mysql84
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_DATABASE: CR12306
+      TZ: Asia/Shanghai
     ports:
       - "3306:3306"
     volumes:
-      - ./db-init/CR12306.sql:/docker-entrypoint-initdb.d/CR12306.sql
+      - ./db-init/CR12306.sql:/docker-entrypoint-initdb.d/001_CR12306.sql:ro
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: neo4j-12306
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/12345678
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p 12345678 'RETURN 1' >/dev/null 2>&1 || exit 1"]
+      interval: 8s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis-12306
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
 volumes:
   mysql-data:
+  neo4j-data:
+  redis-data:

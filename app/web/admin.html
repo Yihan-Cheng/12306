@@ -7,9 +7,10 @@
     <button data-view="trains"><i>⇥</i><span>车次与库存</span></button>
     <button data-view="orders"><i>▤</i><span>订单与乘客</span></button>
     <button data-view="waitlist"><i>◷</i><span>候补队列</span><em id="waitBadge">0</em></button>
+    <button data-view="buffer"><i>⇌</i><span>流量缓冲</span><b class="new-badge">DB</b></button>
     <button data-view="ai"><i>✦</i><span>AI 订票员</span><b class="new-badge">LAB</b></button>
   </nav>
-  <div class="side-bottom"><div class="admin-profile"><span>管</span><div><b>系统管理员</b><small>独立运营管理环境</small></div><i></i></div></div>
+  <div class="side-bottom"><button id="adminLogout" class="admin-logout">退出管理端</button><div class="admin-profile"><span>管</span><div><b id="adminDisplayName">系统管理员</b><small>独立运营管理环境</small></div><i></i></div></div>
 </aside>
 <main class="admin-main">
   <header><div><h1 id="viewTitle">运营总览</h1><p id="viewSubtitle">实时掌握铁路客票系统运行状态</p></div><div class="header-actions"><div id="adminHealth" class="system-state"><i></i><span>系统检测中</span></div><span id="clock"></span><button id="refreshAll" title="刷新当前页面">↻</button></div></header>
@@ -35,13 +36,18 @@
 
   <section id="view-orders" class="view">
     <div class="subtabs"><button class="active" data-sub="orderTable">订单流水</button><button data-sub="passengerTable">乘客档案</button></div>
-    <section id="orderTable" class="admin-card table-card subview active"><div class="card-head"><div><h2>订单流水</h2><p>预占、支付、取消、超时与退款全生命周期</p></div><label class="inline-filter">状态<select id="orderStatus"><option value="">全部状态</option><option>PENDING_PAYMENT</option><option>PAID</option><option>CANCELLED</option><option>TIMEOUT</option><option>REFUNDED</option></select></label></div><div class="table-scroll"><table><thead><tr><th>订单号</th><th>乘客 / 用户</th><th>行程</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th></tr></thead><tbody id="orderRows"></tbody></table></div></section>
+    <section id="orderTable" class="admin-card table-card subview active"><div class="card-head"><div><h2>订单流水</h2></div><div class="order-filters"><label class="inline-filter">状态<select id="orderStatus"><option value="">全部状态</option><option value="WAITLIST_PENDING">候补中</option><option value="PAID">已支付</option><option value="PENDING_PAYMENT">待支付</option><option value="REFUNDED">已退款</option><option value="WAITLIST_FAILED">候补失败</option><option value="CANCELLED">已取消</option><option value="TIMEOUT">已超时</option></select></label><label class="inline-filter">时间<select id="orderSort"><option value="desc">最新优先</option><option value="asc">最早优先</option></select></label></div></div><div class="table-scroll"><table class="order-ledger"><thead><tr><th>记录号</th><th>乘客 / 用户</th><th>行程</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th></tr></thead><tbody id="orderRows"></tbody></table></div></section>
     <section id="passengerTable" class="admin-card table-card subview"><div class="card-head"><div><h2>乘客档案</h2><p>隐私安全的乘车人账户概览</p></div><input id="passengerSearch" class="compact-search" placeholder="搜索用户名或乘车人"></div><div class="table-scroll"><table><thead><tr><th>乘客 ID</th><th>乘车人</th><th>所属用户</th><th>账户状态</th><th>历史订单</th><th>候补次数</th><th>注册时间</th></tr></thead><tbody id="passengerRows"></tbody></table></div></section>
   </section>
 
   <section id="view-waitlist" class="view">
     <div class="wait-summary"><div><span>当前排队</span><b id="wWaiting">—</b></div><div><span>已兑现</span><b id="wMatched">—</b></div><div><span>公平保护</span><b id="wProtected">—</b></div><div><span>累计跳过</span><b id="wSkipped">—</b></div></div>
-    <section class="admin-card table-card"><div class="card-head"><div><h2>候补队列监控</h2><p>公平保护请求优先，队列按创建时间稳定排序</p></div><button id="loadWaits" class="action-secondary">刷新队列</button></div><div class="table-scroll"><table><thead><tr><th>队列位次</th><th>请求号</th><th>车次 / 席别</th><th>区间</th><th>人数</th><th>状态</th><th>重试 / 跳过</th><th>截止时间</th></tr></thead><tbody id="waitRows"></tbody></table></div></section>
+    <section class="admin-card table-card"><div class="card-head"><div><h2>候补队列监控</h2><p>公平保护请求优先，队列按创建时间稳定排序</p></div><div class="card-actions"><button id="matchWaits" class="action-primary">立即尝试兑现</button><button id="loadWaits" class="action-secondary">刷新队列</button></div></div><div class="table-scroll"><table><thead><tr><th>队列位次</th><th>请求号</th><th>车次 / 席别</th><th>区间</th><th>人数</th><th>状态</th><th>重试 / 跳过</th><th>截止时间</th></tr></thead><tbody id="waitRows"></tbody></table></div></section>
+  </section>
+
+  <section id="view-buffer" class="view">
+    <div class="wait-summary"><div><span>等待处理</span><b id="bQueued">—</b></div><div><span>正在处理</span><b id="bProcessing">—</b></div><div><span>成功订单</span><b id="bSucceeded">—</b></div><div><span>平均耗时</span><b id="bLatency">—</b></div></div>
+    <section class="admin-card table-card"><div class="card-head"><div><h2>数据库流量缓冲区</h2><p>持久化队列、幂等键、租约恢复与 SKIP LOCKED 多工作者消费</p></div><button id="loadBuffer" class="action-secondary">刷新缓冲区</button></div><div class="table-scroll"><table><thead><tr><th>请求</th><th>用户 / 乘客</th><th>车次与区间</th><th>席别</th><th>状态</th><th>尝试</th><th>耗时</th><th>错误</th></tr></thead><tbody id="bufferRows"></tbody></table></div></section>
   </section>
 
   <section id="view-ai" class="view">
@@ -49,7 +55,7 @@
     <div class="ai-layout">
       <section class="admin-card ai-config"><div class="card-head"><div><h2>创建模拟任务</h2><p>选择行为策略与负载参数</p></div></div>
         <div class="mode-cards"><label><input type="radio" name="aiMode" value="random" checked><span><i>⌘</i><b>随机抢票</b><small>随机选择车次、区间与席别</small></span></label><label><input type="radio" name="aiMode" value="targeted"><span><i>◎</i><b>定向压测</b><small>集中消耗指定车次席别</small></span></label></div>
-        <div id="targetFields" class="target-fields disabled"><label>目标车次<select id="aiRun"></select></label><label>目标席别<select id="aiSeatType"><option value="">先选择车次</option></select></label></div>
+        <div id="targetFields" class="target-fields disabled"><label>目标车次<input id="aiRunSearch" list="aiRunList" autocomplete="off" placeholder="输入完整车次号，如 G1"><datalist id="aiRunList"></datalist><input id="aiRun" type="hidden"><small id="aiRunMatch">输入车次号后自动匹配</small></label><label>目标席别<select id="aiSeatType"><option value="">先选择车次</option></select></label></div>
         <div class="form-grid"><label>模拟用户数<input id="aiUsers" type="number" min="1" max="500" value="50"><small>1–500 个独立 AI 乘客</small></label><label>并发线程数<input id="aiConcurrency" type="number" min="1" max="30" value="8"><small>建议不超过本机 CPU × 2</small></label><label>自动支付率<div class="range-line"><input id="aiPayRate" type="range" min="0" max="100" value="70"><output id="payOutput">70%</output></div><small>未支付订单保持预占状态</small></label><label class="check-row"><input id="aiWaitlist" type="checkbox" checked><span><b>余票不足时加入候补</b><small>用于产生并检验公平候补队列</small></span></label></div>
         <div class="notice"><b>实验提示</b><span>该操作调用真实存储过程，生成的 AI 用户、订单及候补记录会保留在数据库中，便于课程验收。</span></div><button id="startAI" class="run-button"><span>▶</span> 启动 AI 订票任务</button>
       </section>
