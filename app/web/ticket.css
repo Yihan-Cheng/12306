@@ -1,2 +1,218 @@
-/* Approved electronic ticket: clean JR-inspired layout without cell borders. */
-.jr-ticket{color:#493634;background:#dcf5f3;font-weight:500}.jr-ticket:before{opacity:0}.jr-ticket em,.jr-route strong,.jr-mainline,.jr-details{font-family:"Arial Narrow","Bahnschrift Condensed","Roboto Condensed",Arial,"Microsoft YaHei",sans-serif;font-stretch:condensed}.jr-ticket-head{border:0;padding:0 3.2%;gap:8px}.jr-ticket-head b{font-weight:600;font-size:clamp(11px,2vw,16px)}.jr-ticket-head em{font-weight:600;font-size:clamp(10px,1.9vw,15px)}.jr-route{grid-template-columns:minmax(0,1fr) 12% minmax(0,1fr);padding:0 4%;align-items:center}.jr-route span{font-size:clamp(19px,3.7vw,30px);font-weight:600;line-height:1}.jr-route strong{font-size:clamp(17px,3.25vw,27px);font-weight:600;line-height:1;margin-top:5px;letter-spacing:-.35px}.jr-route i{font-size:0;width:30px;height:9px;background:#493634;justify-self:center;position:relative}.jr-route i:after{content:"";position:absolute;right:-12px;top:-7px;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:14px solid #493634}.jr-mainline{border:0;display:grid;grid-template-columns:1.18fr 1.05fr 1.05fr .72fr;align-items:center;padding:0 3.2%;gap:2.4%}.jr-mainline>b{min-width:0;margin:0;display:flex;align-items:baseline;justify-content:flex-start;gap:6px;font-size:clamp(12px,2.6vw,21px);font-weight:500;white-space:nowrap}.jr-mainline>b:nth-child(2),.jr-mainline>b:nth-child(3){justify-content:center}.jr-mainline>b:last-child{justify-content:flex-end;font-size:clamp(15px,3vw,25px)}.jr-mainline small{display:inline-flex;align-items:baseline;gap:3px;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:clamp(7px,1.35vw,11px);font-weight:500;color:#493634}.jr-mainline small em{font-size:.85em;font-weight:500}.jr-band{border:0;background:#9fe1de}.jr-details{display:grid;grid-template-columns:1.05fr 1.55fr .72fr .9fr 1.05fr;align-items:center;padding:0 3.2%;gap:2.4%}.jr-details>b{min-width:0;margin:0;display:flex;align-items:baseline;gap:5px;font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:clamp(11px,2.15vw,18px);font-weight:500;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.jr-details>b em{font-size:.72em;font-style:normal;font-weight:500}.jr-details .jr-fare{justify-content:flex-end;font-family:"Arial Narrow","Bahnschrift Condensed",Arial,sans-serif;font-size:clamp(15px,2.9vw,24px);font-weight:500}.ticket-modal{z-index:90}.ticket-modal-card{width:min(760px,96vw);max-height:92vh;padding:30px 28px 10px;background:#f7fafb}.ticket-modal-content{padding-top:5px}.ticket-modal-title{text-align:left;margin:0 auto 18px;width:min(100%,660px)}.ticket-modal-title span{font-size:8px;letter-spacing:1.8px;color:var(--blue);font-weight:800}.ticket-modal-title h2{font-size:19px;margin:4px 0}.order-actions{position:absolute;right:0;bottom:13px;display:flex;gap:7px}.order-actions button{border:1px solid #dce3eb;background:#fff;border-radius:6px;padding:5px 8px;color:var(--blue);font-size:8px}.order-actions .ticket-action{border-color:#8dbff8;background:#edf6ff}@media(max-width:620px){.jr-route span{font-size:clamp(15px,5.2vw,21px)}.jr-route strong{font-size:clamp(12px,4.25vw,18px)}.jr-route i{width:20px;height:6px}.jr-route i:after{right:-9px;top:-5px;border-top-width:8px;border-bottom-width:8px;border-left-width:10px}.jr-mainline{gap:1.3%;padding:0 2.5%}.jr-mainline>b{gap:3px}.jr-details{gap:1.2%;padding:0 2.5%}.jr-details>b{gap:2px}.ticket-modal-card{padding:34px 8px 8px}.order-actions{position:static;margin-top:10px;justify-content:flex-end}}
+/* Electronic ticket: this stylesheet intentionally mirrors the approved
+   776 x 425 reference. Only text values are supplied dynamically. */
+.jr-ticket{
+  container-type:inline-size;
+  box-sizing:border-box;
+  width:min(100%,776px);
+  max-width:none;
+  aspect-ratio:776/425;
+  margin:0 auto 24px;
+  padding:0;
+  overflow:hidden;
+  position:relative;
+  display:grid;
+  grid-template-rows:22% 31% 15.7% 10.1% 21.2%;
+  border:3px solid #4b302e;
+  border-radius:0;
+  background:#d9fbf8;
+  color:#432a29;
+  box-shadow:none;
+  text-align:left;
+  font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+  font-weight:700;
+}
+.jr-ticket:before{display:none}
+.jr-ticket em{
+  font-family:"DIN Next LT Pro Medium","DIN Next LT Pro","Arial Narrow",Arial,sans-serif;
+  font-style:normal;
+}
+.jr-watermark{
+  position:absolute;
+  z-index:0;
+  right:7%;
+  top:-1.5%;
+  color:rgba(255,255,255,.48);
+  font-family:Arial,sans-serif;
+  font-size:22.5cqw;
+  line-height:.92;
+  font-style:italic;
+  font-weight:900;
+  letter-spacing:-1.9cqw;
+  pointer-events:none;
+}
+.jr-ticket-head,.jr-route,.jr-mainline,.jr-band,.jr-details{position:relative;z-index:1}
+.jr-ticket-head{
+  display:flex;
+  align-items:flex-start;
+  gap:2.1cqw;
+  padding:3.5cqw 3.8cqw 0;
+  border:0;
+  white-space:nowrap;
+  line-height:1;
+}
+.jr-ticket-head b{
+  font-size:4.15cqw;
+  font-weight:800;
+  letter-spacing:.05cqw;
+}
+.jr-ticket-head em{
+  font-size:4.3cqw;
+  font-weight:700;
+  letter-spacing:.02cqw;
+}
+.jr-route{
+  display:grid;
+  grid-template-columns:45% 8% 47%;
+  align-items:start;
+  padding:2.35cqw 0 0;
+  border:0;
+}
+.jr-route>div{text-align:center;min-width:0}
+.jr-route>div:last-child{text-align:center}
+.jr-route span,.jr-route strong{
+  display:block;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:clip;
+}
+.jr-route span{
+  font-size:6.85cqw;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:.14cqw;
+}
+.jr-route strong{
+  margin-top:.72cqw;
+  font-family:"DIN Next LT Pro Medium","DIN Next LT Pro","Arial Narrow",Arial,sans-serif;
+  font-size:3.78cqw;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:0;
+}
+.jr-route i{
+  align-self:start;
+  justify-self:center;
+  position:relative;
+  width:2.9cqw;
+  height:2.45cqw;
+  margin-top:3.85cqw;
+  background:#432a29;
+  color:transparent;
+  font-size:0;
+  line-height:0;
+  transform:translateX(-1.6cqw);
+}
+.jr-route i:after{
+  content:"";
+  position:absolute;
+  right:-2.8cqw;
+  top:-1.34cqw;
+  border-top:2.58cqw solid transparent;
+  border-bottom:2.58cqw solid transparent;
+  border-left:2.8cqw solid #432a29;
+}
+.jr-mainline{
+  display:grid;
+  grid-template-columns:28.5% 27.5% 30% 14%;
+  align-items:center;
+  gap:0;
+  padding:0 3.7cqw;
+  border:0;
+  font-family:"DIN Next LT Pro Medium","DIN Next LT Pro","Arial Narrow",Arial,"Microsoft YaHei",sans-serif;
+}
+.jr-mainline>b{
+  min-width:0;
+  margin:0;
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-start;
+  gap:.66cqw;
+  color:#432a29;
+  font-size:4.62cqw;
+  font-family:"DIN Next LT Pro Medium","DIN Next LT Pro","Arial Narrow",Arial,"Microsoft YaHei",sans-serif;
+  font-weight:600;
+  font-variant-numeric:tabular-nums lining-nums;
+  letter-spacing:.015cqw;
+  line-height:1;
+  white-space:nowrap;
+  transform:translateY(.65cqw);
+}
+.jr-mainline>b:first-child{font-size:4.35cqw}
+.jr-mainline>b:nth-child(2),.jr-mainline>b:nth-child(3){justify-content:flex-start}
+.jr-mainline>b:last-child{
+  justify-content:flex-start;
+  font-size:4.72cqw;
+}
+.jr-mainline small{
+  display:inline-flex;
+  align-items:baseline;
+  gap:.58cqw;
+  color:#432a29;
+  font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+  font-size:3.35cqw;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+}
+.jr-mainline small em{
+  font-size:2.48cqw;
+  font-weight:700;
+}
+.jr-band{
+  border:0;
+  background:#82e2df;
+}
+.jr-details{
+  display:grid;
+  grid-template-columns:18.7% 30.9% 17.3% 19.3% 13.8%;
+  align-items:center;
+  gap:0;
+  padding:0 3.9cqw;
+  border:0;
+  font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+}
+.jr-details>b{
+  min-width:0;
+  margin:0;
+  display:flex;
+  align-items:baseline;
+  gap:.72cqw;
+  overflow:visible;
+  color:#432a29;
+  font-size:4.18cqw;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+  transform:translateY(-.8cqw);
+}
+.jr-details>b em{
+  font-size:2.42cqw;
+  font-weight:600;
+}
+.jr-details>b:nth-child(3),.jr-details>b:nth-child(4){
+  font-family:"DIN Next LT Pro Medium","DIN Next LT Pro","Arial Narrow",Arial,"Microsoft YaHei",sans-serif;
+  font-weight:600;
+  font-variant-numeric:tabular-nums lining-nums;
+}
+.jr-details .jr-fare{
+  justify-content:flex-start;
+  font-family:"DIN Next LT Pro Medium","DIN Next LT Pro","Arial Narrow",Arial,sans-serif;
+  font-size:4.65cqw;
+  font-weight:600;
+  font-variant-numeric:tabular-nums lining-nums;
+  letter-spacing:.015cqw;
+}
+.ticket-modal{z-index:90}
+.ticket-modal-card{width:min(850px,98vw);max-height:94vh;padding:30px 34px 10px;background:#f7fafb}
+.ticket-modal-content{padding-top:5px}
+.ticket-modal-title{text-align:left;margin:0 auto 18px;width:min(100%,776px)}
+.ticket-modal-title span{font-size:8px;letter-spacing:1.8px;color:var(--blue);font-weight:800}
+.ticket-modal-title h2{font-size:19px;margin:4px 0}
+.order-actions{position:absolute;right:0;bottom:13px;display:flex;gap:7px}
+.order-actions button{border:1px solid #dce3eb;background:#fff;border-radius:6px;padding:5px 8px;color:var(--blue);font-size:8px}
+.order-actions .ticket-action{border-color:#8dbff8;background:#edf6ff}
+@media(max-width:620px){
+  .jr-ticket{border-width:2px}
+  .ticket-modal-card{padding:34px 5px 8px}
+  .order-actions{position:static;margin-top:10px;justify-content:flex-end}
+}
