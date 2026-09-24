@@ -1,7 +1,7 @@
 # CR12306 当前系统设计、数据库关键技术与未来优化方案
 
 > 文档定位：当前阶段技术总结，可用于课程报告、项目答辩与后续协作开发。  
-> 基准版本：数据库迁移 V002—V012，Web 用户端与管理端当前实现。  
+> 基准版本：数据库迁移 V002—V014，Web 用户端与管理端当前实现。  
 > 演示运行日：2026-09-07（当前系统将购票日期固定为演示日期）。
 
 ## 摘要
@@ -365,7 +365,9 @@ AI 订票支持两类模式：
 - `V009__waitlist_fair_matching.sql`：候补队列与公平匹配；
 - `V010__query_routines.sql`：直达/联程查询例程；
 - `V011__application_api_support.sql`：Web 应用接口所需数据支持；
-- `V012__fix_transfer_position_null.sql`：换乘查询位置偏好空值兼容修复。
+- `V012__fix_transfer_position_null.sql`：换乘查询位置偏好空值兼容修复；
+- `V013__admin_auth_and_booking_buffer.sql`：管理端认证与可恢复订票缓冲；
+- `V014__wait_prepayment.sql`：候补预付、兑现及失败退款状态支持。
 
 ### 应用文件
 

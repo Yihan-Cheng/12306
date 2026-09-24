@@ -512,6 +512,7 @@ def ai_order_action(order_id: int) -> Dict[str, Any]:
                 "refund_id": result[-1].get("refund_id") if result else None}
     if order["order_status"] == "PENDING_PAYMENT":
         mysql_rows(f"CALL sp_cancel_unpaid_order({user_id},{order_id});")
+        match_waitlist_groups(products)
         return {"order_id": order_id, "action": "CANCELLED"}
     raise ApiError("该 AI 订单当前状态不可退票或取消", 409)
 
@@ -572,7 +573,9 @@ def match_waitlist_groups(groups: Optional[List[Dict[str, Any]]] = None,
 
 
 def waitlist_worker_loop() -> None:
-    while not WAITLIST_WORKER_STOP.wait(4.0):
+    # Direct release paths trigger a targeted match. This short fallback
+    # interval covers expirations and inventory changes outside the API.
+    while not WAITLIST_WORKER_STOP.wait(1.0):
         try:
             match_waitlist_groups(batch_size=30)
         except Exception:
@@ -934,6 +937,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(rows[-1])
             elif action == "cancel":
                 mysql_rows(f"CALL sp_cancel_unpaid_order({user_id},{order_id});")
+                match_after_release(order_id)
                 self.send_json({"order_id": order_id, "status": "CANCELLED"})
             else:
                 state = mysql_rows(

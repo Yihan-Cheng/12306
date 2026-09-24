@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1783f7">
   <title>CR12306 · 智慧出行</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/ticket.css">
 </head>
 <body>
   <section id="authScreen" class="auth-screen">
@@ -79,6 +80,7 @@
 
   <div id="routeModal" class="modal" aria-hidden="true"><div class="modal-card route-modal-card"><button class="modal-close" data-close="routeModal">×</button><div id="routeContent"></div></div></div>
   <div id="ordersModal" class="modal" aria-hidden="true"><div class="modal-card orders-modal-card"><button class="modal-close" data-close="ordersModal">×</button><div class="modal-title"><span>MY JOURNEYS</span><h2>我的订单</h2></div><div id="ordersList" class="orders-list"></div></div></div>
+  <div id="ticketModal" class="modal ticket-modal" aria-hidden="true"><div class="modal-card ticket-modal-card"><button class="modal-close" data-close="ticketModal">×</button><div id="ticketContent" class="ticket-modal-content"></div></div></div>
   <div id="noticeModal" class="modal" aria-hidden="true"><div class="modal-card notice-modal-card"><div class="notice-icon">!</div><h2 id="noticeTitle">座位分配提示</h2><p id="noticeText"></p><button id="noticeOkay" class="primary-button">我知道了</button></div></div>
   <div id="toast" class="toast"></div>
   <script src="/app.js"></script>

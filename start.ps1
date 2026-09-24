@@ -154,6 +154,8 @@ if (-not $SkipGraphSync) {
 
 Write-Step 'Finding Python 3'
 $pythonCandidates = @(
+    $(if ($env:CONDA_PREFIX) { Join-Path $env:CONDA_PREFIX 'python.exe' }),
+    'D:\anaconda\python.exe',
     (Join-Path $env:USERPROFILE '.local\bin\python3.12.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python312\python.exe'),
     (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python311\python.exe')

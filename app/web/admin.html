@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css"></head>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/admin-live.css"></head>
 <body>
 <aside class="sidebar">
   <a class="admin-brand" href="/admin.html"><span>R</span><div><b>RailFlow</b><small>运营控制中心</small></div></a>
@@ -42,7 +42,7 @@
 
   <section id="view-waitlist" class="view">
     <div class="wait-summary"><div><span>当前排队</span><b id="wWaiting">—</b></div><div><span>已兑现</span><b id="wMatched">—</b></div><div><span>公平保护</span><b id="wProtected">—</b></div><div><span>累计跳过</span><b id="wSkipped">—</b></div></div>
-    <section class="admin-card table-card"><div class="card-head"><div><h2>候补队列监控</h2><p>公平保护请求优先，队列按创建时间稳定排序</p></div><div class="card-actions"><button id="matchWaits" class="action-primary">立即尝试兑现</button><button id="loadWaits" class="action-secondary">刷新队列</button></div></div><div class="table-scroll"><table><thead><tr><th>队列位次</th><th>请求号</th><th>车次 / 席别</th><th>区间</th><th>人数</th><th>状态</th><th>重试 / 跳过</th><th>截止时间</th></tr></thead><tbody id="waitRows"></tbody></table></div></section>
+    <section class="admin-card table-card"><div class="card-head"><div><h2>候补队列监控</h2><p>库存释放后自动匹配，队列按创建时间稳定排序</p></div><div class="card-actions"><span class="live-indicator"><i></i>自动匹配中</span><button id="loadWaits" class="action-secondary">刷新队列</button></div></div><div class="table-scroll"><table><thead><tr><th>队列位次</th><th>请求号</th><th>车次 / 席别</th><th>区间</th><th>人数</th><th>状态</th><th>重试 / 跳过</th><th>截止时间</th></tr></thead><tbody id="waitRows"></tbody></table></div></section>
   </section>
 
   <section id="view-buffer" class="view">
