@@ -120,10 +120,12 @@ for ($i = 0; $i -lt 60; $i++) {
 if (-not $neo4jReady) { throw 'Neo4j was not ready within 120 seconds.' }
 
 Write-Step 'Checking database migrations'
+$databaseChanged = $false
 $hasTicketingSchema = Invoke-MySql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='CR12306' AND table_name='seat_type';" -Scalar
 if ($hasTicketingSchema -eq '0') {
     Get-ChildItem -LiteralPath (Join-Path $repoRoot 'database\migrations') -Filter 'V*.sql' |
         Sort-Object Name | ForEach-Object { Apply-Migration $_.FullName }
+    $databaseChanged = $true
 } else {
     $hasV013 = Invoke-MySql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='CR12306' AND table_name='booking_request_buffer';" -Scalar
     if ($hasV013 -eq '0') {
@@ -134,8 +136,16 @@ if ($hasTicketingSchema -eq '0') {
     $hasV014 = Invoke-MySql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='CR12306' AND table_name='wait_payment';" -Scalar
     if ($hasV014 -eq '0') {
         Apply-Migration (Join-Path $repoRoot 'database\migrations\V014__wait_prepayment.sql')
+        $databaseChanged = $true
     } else {
         Write-Host '    Database already contains V014.' -ForegroundColor Green
+    }
+    $hasV015 = Invoke-MySql "SELECT COUNT(*) FROM train_run tr WHERE tr.train_no='G8359' AND tr.service_date='2026-09-07' AND tr.stop_count=14 AND tr.segment_count=13 AND (SELECT COUNT(*) FROM train_station ts WHERE ts.train_no='G8359')=14 AND EXISTS (SELECT 1 FROM train_station ts JOIN station s ON s.station_id=ts.station_id WHERE ts.train_no='G8359' AND ts.station_order=14 AND s.station_name='义乌');" -Scalar
+    if ($hasV015 -eq '0') {
+        Apply-Migration (Join-Path $repoRoot 'database\migrations\V015__add_g8359_extra_service.sql')
+        $databaseChanged = $true
+    } else {
+        Write-Host '    Database already contains V015 (G8359).' -ForegroundColor Green
     }
 }
 
@@ -143,8 +153,8 @@ if (-not $SkipGraphSync) {
     Write-Step 'Checking Neo4j query graph'
     $graphCount = (& docker exec neo4j-12306 cypher-shell -u neo4j -p 12345678 --format plain `
         'MATCH (r:TrainRun) RETURN count(r) AS runs' 2>$null | Select-Object -Last 1).Trim()
-    if (-not $graphCount -or $graphCount -eq '0') {
-        Write-Host '    Query graph is empty; rebuilding it from MySQL...' -ForegroundColor Yellow
+    if ($databaseChanged -or -not $graphCount -or $graphCount -eq '0') {
+        Write-Host '    Rebuilding the query graph from current MySQL data...' -ForegroundColor Yellow
         & (Join-Path $repoRoot 'app\sync_query_graph.ps1')
         if ($LASTEXITCODE) { throw 'Neo4j query graph synchronization failed.' }
     } else {

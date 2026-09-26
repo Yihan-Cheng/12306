@@ -31,10 +31,14 @@ def batches(rows: List[Dict[str, Any]], size: int = 1000) -> Iterable[List[Dict[
         yield rows[offset : offset + size]
 
 
-def load_mysql() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def load_mysql() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     connection = pymysql.connect(**MYSQL_CONFIG)
     try:
         with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT station_id, station_name, city FROM station ORDER BY station_id"
+            )
+            stations = cursor.fetchall()
             cursor.execute(
                 """
                 SELECT tr.run_id, tr.train_no, tr.service_date, t.train_type
@@ -54,13 +58,14 @@ def load_mysql() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     finally:
         connection.close()
     return (
+        [{key: iso(value) for key, value in row.items()} for row in stations],
         [{key: iso(value) for key, value in row.items()} for row in runs],
         [{key: iso(value) for key, value in row.items()} for row in calls],
     )
 
 
 def sync() -> None:
-    runs, calls = load_mysql()
+    stations, runs, calls = load_mysql()
     driver = GraphDatabase.driver(NEO4J_URI, auth=NEO4J_AUTH)
     try:
         driver.verify_connectivity()
@@ -73,6 +78,19 @@ def sync() -> None:
                 "CREATE INDEX train_run_service_date IF NOT EXISTS "
                 "FOR (r:TrainRun) ON (r.service_date)"
             ).consume()
+            session.run(
+                "CREATE CONSTRAINT station_id_unique IF NOT EXISTS "
+                "FOR (s:Station) REQUIRE s.station_id IS UNIQUE"
+            ).consume()
+            for batch in batches(stations):
+                session.run(
+                    """
+                    UNWIND $rows AS row
+                    MERGE (s:Station {station_id: row.station_id})
+                    SET s.station_name = row.station_name, s.city = row.city
+                    """,
+                    rows=batch,
+                ).consume()
             session.run("MATCH (:TrainRun)-[c:CALLS_AT]->() DELETE c").consume()
             session.run("MATCH (r:TrainRun) DELETE r").consume()
 
@@ -103,7 +121,10 @@ def sync() -> None:
                     """,
                     rows=batch,
                 ).consume()
-        print(f"查询图同步完成：TrainRun={len(runs)}，CALLS_AT={len(calls)}")
+        print(
+            f"查询图同步完成：Station={len(stations)}，"
+            f"TrainRun={len(runs)}，CALLS_AT={len(calls)}"
+        )
     finally:
         driver.close()
 

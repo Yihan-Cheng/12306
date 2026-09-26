@@ -7,7 +7,7 @@
 ```
 12306/
 ├── app/                  # Python 服务、用户端和独立管理端
-├── database/             # V002～V014 迁移、验收脚本和备份
+├── database/             # V002～V015 迁移、验收脚本和备份
 ├── db-init/              # Docker 首次初始化 SQL
 ├── docs/                 # 运行说明、设计文档、理论分析和论文
 ├── 代码/                 # MySQL → Neo4j 与数据可视化工具
@@ -31,7 +31,7 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 
 1. 启动 Docker Desktop；
 2. 创建或启动 MySQL 8.4、Neo4j 5.26 和 Redis 7.4；
-3. 首次运行时依次执行 V002～V014 数据库迁移；
+3. 首次运行时依次执行 V002～V015 数据库迁移；
 4. 必要时从 MySQL 重建 Neo4j 查询图；
 5. 自动寻找本机 Python 3 并启动 Web 服务。
 

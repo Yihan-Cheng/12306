@@ -3,83 +3,97 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#1783f7">
-  <title>CR12306 · 智慧出行</title>
+  <meta name="theme-color" content="#008c23">
+  <title>CR · 中国铁路智慧出行</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/brand.css">
   <link rel="stylesheet" href="/ticket.css">
 </head>
 <body>
   <section id="authScreen" class="auth-screen">
-    <div class="auth-visual">
-      <div class="auth-brand"><span>CR</span><div><b>CR12306</b><small>智慧铁路客票系统</small></div></div>
-      <div class="auth-copy"><span>CHINA RAILWAY · SMART TRAVEL</span><h1>让每一次出发<br><em>简单而确定</em></h1><p>实时余票 · 智能选座 · 公平候补</p></div>
-      <div class="auth-rail"><i></i><i></i><i></i><i></i><b>➤</b></div>
-      <div class="auth-cityline"><span>上海</span><span>苏州</span><span>南京</span><span>杭州</span></div>
-    </div>
-    <div class="auth-panel">
+    <header class="auth-site-header">
+      <div class="auth-brand"><span>CR</span><div><b>EAST CHINA RAILWAY COMPANY</b></div></div>
+      <nav aria-label="登录前功能导航">
+        <button disabled>用户登录 <i>⌄</i></button>
+        <button disabled>选择城市与车站 <i>⌄</i></button>
+        <button disabled>列车与线路 <i>⌄</i></button>
+        <button disabled>订单 <i>⌄</i></button>
+      </nav>
+    </header>
+    <main class="auth-landing">
+      <div class="auth-pattern" aria-hidden="true"></div>
+      <div class="auth-heading"><span>BEFORE YOUR FIRST TRIP ON CR</span><h1>在您首次乘坐 CR 之前</h1></div>
       <form id="loginForm" class="login-card">
-        <div class="mobile-brand"><span>CR</span><b>CR12306</b></div>
-        <span class="eyebrow">WELCOME ABOARD</span><h2>你好，欢迎出发</h2><p>输入姓名即可进入</p>
-        <label><span>姓名</span><div class="input-shell"><i>人</i><input id="loginName" autocomplete="name" maxlength="80" placeholder="请输入乘车人姓名" required></div></label>
+        <label aria-label="姓名"><div class="input-shell"><input id="loginName" autocomplete="name" maxlength="80" placeholder="请输入姓名" required><button id="loginButton" type="submit">进入 <b>→</b></button></div></label>
         <div hidden><input id="loginPassword"><button id="togglePassword" type="button"></button></div>
-        <button id="loginButton" class="login-button" type="submit">进入系统 <b>→</b></button>
-        <div class="remember-note"><i>✓</i><span>登录信息会保存在本设备，下次自动进入</span></div>
       </form>
-    </div>
+      <div class="auth-capabilities"><article><i>01</i><b>选择城市与车站</b><span>按城市汇总全部可用车站</span></article><article><i>02</i><b>列车与线路</b><span>实时查看车次、经停与余票</span></article><article><i>03</i><b>订单</b><span>查看车票并办理退票</span></article></div>
+    </main>
   </section>
 
   <div id="userApp" class="user-app hidden">
     <header class="user-header">
-      <button class="header-brand" data-home><span>CR</span><div><b>CR12306</b><small>智慧铁路客票系统</small></div></button>
-      <nav><button class="active" data-home>车票预订</button><button id="showOrders">我的订单</button><button disabled>出行服务</button></nav>
+      <button class="header-brand" data-home><span>CR</span><div><b>EAST CHINA RAILWAY COMPANY</b></div></button>
+      <nav>
+        <div class="nav-item"><button id="accountNav">用户登录 <i>⌄</i></button><div class="nav-preview"><strong>当前乘车人</strong><p><b id="navPassengerName">乘车人</b> · 登录状态正常</p></div></div>
+        <div class="nav-item"><button id="bookingNav" class="active" data-home>选择城市与车站 <i>⌄</i></button><div class="nav-preview"><strong>开始一段行程</strong><p>选择出发城市、目的城市或具体车站。</p><span>进入车票查询 →</span></div></div>
+        <div class="nav-item"><button id="routesNav">列车与线路 <i>⌄</i></button><div class="nav-preview"><strong>列车与线路</strong><p>查看已查询车次、完整经停站和实时余票。</p><span>查看查询结果 →</span></div></div>
+        <div class="nav-item"><button id="showOrders">订单 <i>⌄</i></button><div class="nav-preview"><strong>我的车票</strong><p>查看候补状态、电子车票和退票入口。</p><span>进入订单页面 →</span></div></div>
+      </nav>
       <div class="user-profile"><span id="profileAvatar">旅</span><div><b id="profileName">乘车人</b><small>已登录</small></div><button id="logout" title="切换用户">退出</button></div>
     </header>
 
     <main>
       <section id="page-home" class="app-page active">
         <div class="welcome-hero">
-          <div><span>CR12306 · 长三角智慧出行</span><h1><em id="welcomeName">你好</em>，今天想去哪里？</h1></div>
-          <div class="hero-route"><div class="route-track"><i></i><i></i><i></i><b>➤</b></div><div><span>城市互联</span><strong>准时 · 安全 · 从容</strong></div></div>
+          <div><span>TRAVEL WITH CR</span><h1>选择城市与车站</h1><p><em id="welcomeName">你好</em>，请选择本次行程</p></div>
         </div>
 
-        <section class="journey-card">
-          <div class="card-label"><span>单程</span></div>
-          <div class="journey-grid">
-            <div class="place-picker">
-              <span class="field-label">出发地</span>
-              <div class="city-line"><select id="fromCity" aria-label="出发城市"></select><b>市</b></div>
-              <select id="fromStation" class="station-select" aria-label="出发车站"></select>
+        <div class="journey-zone">
+          <section class="journey-card">
+            <div class="card-label"><span>单程车票</span></div>
+            <div class="journey-grid">
+              <div class="place-picker">
+                <span class="field-label">出发城市</span>
+                <div class="city-line"><select id="fromCity" aria-label="出发城市"></select><b>市</b></div>
+                <select id="fromStation" class="station-select" aria-label="出发车站"></select>
+              </div>
+              <button id="swapRoute" class="swap-route" title="交换出发地和到达地">⇄</button>
+              <div class="place-picker">
+                <span class="field-label">到达城市</span>
+                <div class="city-line"><select id="toCity" aria-label="到达城市"></select><b>市</b></div>
+                <select id="toStation" class="station-select" aria-label="到达车站"></select>
+              </div>
+              <div class="locked-date"><span class="field-label">乘车日期</span><strong>2026 年 09 月 07 日</strong><input id="serviceDate" type="hidden" value="2026-09-07"></div>
+              <button id="searchTickets" class="search-button"><span>查询车票</span><b>→</b></button>
             </div>
-            <button id="swapRoute" class="swap-route" title="交换出发地和到达地">⇄</button>
-            <div class="place-picker">
-              <span class="field-label">到达地</span>
-              <div class="city-line"><select id="toCity" aria-label="到达城市"></select><b>市</b></div>
-              <select id="toStation" class="station-select" aria-label="到达车站"></select>
-            </div>
-            <div class="locked-date"><span class="field-label">乘车日期</span><strong>2026 年 09 月 07 日</strong><input id="serviceDate" type="hidden" value="2026-09-07"></div>
-            <button id="searchTickets" class="search-button"><i>⌕</i><span>查询车票</span><b>→</b></button>
-          </div>
-        </section>
-
-        <div class="quick-grid"><article><i>准</i><div><b>实时库存</b><span>区间位图精准计算余票</span></div></article><article><i>座</i><div><b>智能分配</b><span>优先偏好，无票自动兜底</span></div></article><article><i>候</i><div><b>公平候补</b><span>稳定队列与跳过保护机制</span></div></article></div>
+          </section>
+        </div>
       </section>
 
-      <section id="page-results" class="app-page page-narrow">
-        <div class="page-top"><button class="back-button" data-home>←</button><div><span>车次查询</span><h1 id="resultRoute">可选车次</h1><p id="resultSummary">正在读取实时余票</p></div><button id="modifySearch" class="soft-button">修改行程</button></div>
-        <div class="result-date"><button disabled>前一天</button><strong><i>日</i> 09 月 07 日 · 周一</strong><button disabled>后一天</button></div>
-        <div id="results" class="train-list"></div>
+      <section id="page-results" class="app-page page-results">
+        <div class="page-top"><button class="back-button" data-home>←</button><div><span>TRAINS &amp; ROUTES</span><h1 id="resultRoute">出发城市 — 目的地城市</h1></div><button id="modifySearch" class="soft-button">修改行程</button></div>
+        <div class="results-zone">
+          <h2 id="resultSummary">列车时刻与实时余票</h2>
+          <div class="result-date"><button disabled>前一天</button><strong><i>日</i> 09 月 07 日 · 周一</strong><button disabled>后一天</button></div>
+          <div id="results" class="train-list"></div>
+        </div>
       </section>
 
       <section id="page-confirm" class="app-page page-confirm">
         <div class="confirm-bar"><button class="back-button" id="backResults">←</button><div><span id="confirmStepLabel">确认订单</span><h1 id="confirmPageTitle">核对行程并选择座位</h1></div><span class="confirm-date">2026-09-07</span></div>
         <div id="confirmContent"></div>
       </section>
+
+      <section id="page-orders" class="app-page page-orders">
+        <div class="page-top orders-page-top"><button class="back-button" data-home>←</button><div><span>MY TICKETS</span><h1>我的车票</h1><p>查看订单、候补状态与电子车票</p></div><button id="refreshOrders" class="soft-button">刷新</button></div>
+        <div id="ordersList" class="orders-list orders-page-list"></div>
+      </section>
     </main>
-    <footer><span>© 2026 CR12306 · 数据库课程设计</span><span>本系统数据仅用于教学演示</span></footer>
+    <footer><span>CR-EAST · EAST CHINA RAILWAY COMPANY</span></footer>
   </div>
 
   <div id="routeModal" class="modal" aria-hidden="true"><div class="modal-card route-modal-card"><button class="modal-close" data-close="routeModal">×</button><div id="routeContent"></div></div></div>
-  <div id="ordersModal" class="modal" aria-hidden="true"><div class="modal-card orders-modal-card"><button class="modal-close" data-close="ordersModal">×</button><div class="modal-title"><span>MY JOURNEYS</span><h2>我的订单</h2></div><div id="ordersList" class="orders-list"></div></div></div>
   <div id="ticketModal" class="modal ticket-modal" aria-hidden="true"><div class="modal-card ticket-modal-card"><button class="modal-close" data-close="ticketModal">×</button><div id="ticketContent" class="ticket-modal-content"></div></div></div>
   <div id="noticeModal" class="modal" aria-hidden="true"><div class="modal-card notice-modal-card"><div class="notice-icon">!</div><h2 id="noticeTitle">座位分配提示</h2><p id="noticeText"></p><button id="noticeOkay" class="primary-button">我知道了</button></div></div>
   <div id="toast" class="toast"></div>

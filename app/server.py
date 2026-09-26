@@ -327,17 +327,29 @@ def scoped_direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         "origin.station_order,origin.departure_at,destination.station_id,destination_station.station_name,"
         "destination.station_order,destination.arrival_at,tr.stop_count,st.seat_type_id,st.seat_type_code,"
         "st.seat_type_name,st.display_order,rf.journey_distance_km,rf.amount "
-        "ORDER BY origin.departure_at,tr.train_no,st.display_order;",
+        # For a city-to-city search, prefer the last usable stop in the origin
+        # city and the first usable stop in the destination city. This keeps a
+        # service such as G8359 displayed as 南通西 -> 上海虹桥 instead of an
+        # arbitrary county-level pair from the same two cities.
+        "ORDER BY tr.train_no,st.display_order,origin.station_order DESC,"
+        "destination.station_order ASC;",
         timeout=30,
     )
-    # A train may stop at more than one station in a selected city. Keep one
-    # deterministic OD product per run and seat class for a concise train list.
+    # A train may stop at more than one station in a selected city. Keep the
+    # preferred, deterministic OD product selected by the ordering above.
     unique: Dict[tuple, Dict[str, Any]] = {}
     for row in rows:
         key = (row["run_id"], row["seat_type_id"])
         if key not in unique:
             unique[key] = row
-    return list(unique.values())
+    return sorted(
+        unique.values(),
+        key=lambda row: (
+            str(row.get("departure_at") or ""),
+            str(row.get("train_no") or ""),
+            int(row.get("display_order") or 0),
+        ),
+    )
 
 
 def transfer_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:

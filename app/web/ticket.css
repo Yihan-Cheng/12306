@@ -93,24 +93,17 @@
   align-self:start;
   justify-self:center;
   position:relative;
-  width:2.9cqw;
-  height:2.45cqw;
+  width:5.9cqw;
+  height:5.05cqw;
   margin-top:3.85cqw;
   background:#432a29;
+  clip-path:polygon(0 26%,56% 26%,56% 0,100% 50%,56% 100%,56% 74%,0 74%);
   color:transparent;
   font-size:0;
   line-height:0;
   transform:translateX(-1.6cqw);
 }
-.jr-route i:after{
-  content:"";
-  position:absolute;
-  right:-2.8cqw;
-  top:-1.34cqw;
-  border-top:2.58cqw solid transparent;
-  border-bottom:2.58cqw solid transparent;
-  border-left:2.8cqw solid #432a29;
-}
+.jr-route i:after{display:none}
 .jr-mainline{
   display:grid;
   grid-template-columns:28.5% 27.5% 30% 14%;
