@@ -1,5 +1,5 @@
 -- CR12306 V015
--- Add G8359 as an ordinary, fully bookable service on 2026-09-07.
+-- Add G8359 as an ordinary, fully bookable service on the fixed demo day.
 -- Upserts make the migration safe to resume without deleting orders or inventory.
 
 SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;
@@ -111,9 +111,9 @@ BEGIN
     SELECT formation_id INTO v_formation_id FROM formation_template WHERE formation_code='EMU_GC_4' AND active=TRUE LIMIT 1;
     IF v_formation_id IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='V015_GC_FORMATION_MISSING'; END IF;
     INSERT INTO train_run(train_no,service_date,formation_id,stop_count,segment_count,run_status,sale_start_at,sale_end_at)
-    VALUES('G8359','2026-09-07',v_formation_id,14,13,'ON_SALE','2026-08-23 00:00:00','2026-09-09 00:00:00')
+    VALUES('G8359','2026-10-07',v_formation_id,14,13,'ON_SALE','2026-09-22 00:00:00','2026-10-09 00:00:00')
     ON DUPLICATE KEY UPDATE formation_id=VALUES(formation_id),stop_count=14,segment_count=13,run_status='ON_SALE',sale_start_at=VALUES(sale_start_at),sale_end_at=VALUES(sale_end_at),version=version+1;
-    SELECT run_id INTO v_run_id FROM train_run WHERE train_no='G8359' AND service_date='2026-09-07';
+    SELECT run_id INTO v_run_id FROM train_run WHERE train_no='G8359' AND service_date='2026-10-07';
     INSERT IGNORE INTO train_run_seat(run_id,seat_id,occupied_mask,version)
       SELECT v_run_id,s.seat_id,0,0 FROM carriage_template ct JOIN seat s ON s.carriage_id=ct.carriage_id AND s.active=TRUE
       WHERE ct.formation_id=v_formation_id AND ct.active=TRUE;
@@ -156,5 +156,5 @@ DROP PROCEDURE sp_v015_add_g8359;
 SELECT tr.run_id,tr.train_no,tr.service_date,tr.stop_count,tr.segment_count,tr.run_status,
        COUNT(DISTINCT trs.seat_id) seats,COUNT(DISTINCT rf.run_fare_id) fares
 FROM train_run tr LEFT JOIN train_run_seat trs ON trs.run_id=tr.run_id LEFT JOIN run_fare rf ON rf.run_id=tr.run_id
-WHERE tr.train_no='G8359' AND tr.service_date='2026-09-07'
+WHERE tr.train_no='G8359' AND tr.service_date='2026-10-07'
 GROUP BY tr.run_id,tr.train_no,tr.service_date,tr.stop_count,tr.segment_count,tr.run_status;

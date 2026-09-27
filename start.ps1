@@ -140,12 +140,19 @@ if ($hasTicketingSchema -eq '0') {
     } else {
         Write-Host '    Database already contains V014.' -ForegroundColor Green
     }
-    $hasV015 = Invoke-MySql "SELECT COUNT(*) FROM train_run tr WHERE tr.train_no='G8359' AND tr.service_date='2026-09-07' AND tr.stop_count=14 AND tr.segment_count=13 AND (SELECT COUNT(*) FROM train_station ts WHERE ts.train_no='G8359')=14 AND EXISTS (SELECT 1 FROM train_station ts JOIN station s ON s.station_id=ts.station_id WHERE ts.train_no='G8359' AND ts.station_order=14 AND s.station_name='义乌');" -Scalar
+    $hasV015 = Invoke-MySql "SELECT COUNT(*) FROM train_run tr WHERE tr.train_no='G8359' AND tr.stop_count=14 AND tr.segment_count=13 AND (SELECT COUNT(*) FROM train_station ts WHERE ts.train_no='G8359')=14 AND EXISTS (SELECT 1 FROM train_station ts JOIN station s ON s.station_id=ts.station_id WHERE ts.train_no='G8359' AND ts.station_order=14 AND s.station_name='义乌');" -Scalar
     if ($hasV015 -eq '0') {
         Apply-Migration (Join-Path $repoRoot 'database\migrations\V015__add_g8359_extra_service.sql')
         $databaseChanged = $true
     } else {
         Write-Host '    Database already contains V015 (G8359).' -ForegroundColor Green
+    }
+    $hasV016 = Invoke-MySql "SELECT COUNT(*) FROM (SELECT COUNT(DISTINCT service_date) date_count,MIN(service_date) service_date,COUNT(*) run_count,SUM(train_no='G8359') g8359_count FROM train_run) x WHERE x.date_count=1 AND x.service_date='2026-10-07' AND x.run_count>0 AND x.g8359_count=1;" -Scalar
+    if ($hasV016 -eq '0') {
+        Apply-Migration (Join-Path $repoRoot 'database\migrations\V016__unify_demo_service_date.sql')
+        $databaseChanged = $true
+    } else {
+        Write-Host '    Database already contains V016 (unified demo date).' -ForegroundColor Green
     }
 }
 

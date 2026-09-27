@@ -19,10 +19,10 @@ button:active{transform:translateY(1px)}
 
 /* Brand mark */
 .auth-brand>span,.mobile-brand>span,.header-brand>span{
-  width:120px;height:64px;flex:0 0 120px;border:0;border-radius:0;box-shadow:none!important;position:relative;
-  background:transparent url('/cr-company-mark-hd.png?v=1') center top/116px auto no-repeat!important;color:transparent!important;font-size:0!important
+  width:120px;height:76px;flex:0 0 120px;border:0;border-radius:0;box-shadow:none!important;position:relative;
+  background:transparent url('/cr-company-mark-hd.png?v=1') center 3px/116px 56px no-repeat!important;color:transparent!important;font-size:0!important
 }
-.auth-brand>span:after,.mobile-brand>span:after,.header-brand>span:after{content:"EAST CHINA RAILWAY COMPANY";position:absolute;left:0;right:0;bottom:0;color:#008f2a;font:600 6.5px/1 Arial,Helvetica,sans-serif;letter-spacing:0;text-align:center;white-space:nowrap}
+.auth-brand>span:after,.mobile-brand>span:after,.header-brand>span:after{content:"CR-EAST";position:absolute;left:0;right:0;bottom:1px;height:16px;display:flex;align-items:center;justify-content:center;color:#008f2a;font:800 12px/.95 Arial Black,Arial,Helvetica,sans-serif;letter-spacing:-.65px;text-align:center;white-space:nowrap}
 .auth-brand,.header-brand{display:flex;align-items:center;gap:16px;text-align:left}
 .auth-brand b,.header-brand b{display:block;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:600;letter-spacing:.1px;color:#171a17}
 
@@ -146,7 +146,7 @@ button:active{transform:translateY(1px)}
   .orders-page-list .user-order{grid-template-columns:90px 1fr auto}.orders-page-list .user-order p,.orders-page-list .user-order>small{grid-column:2}.orders-page-list .order-actions{grid-column:3;grid-row:1/4}
 }
 @media(max-width:620px){
-  .auth-brand>span,.header-brand>span{width:90px;height:50px;flex-basis:90px}.auth-brand b,.header-brand b{font-size:10px}.user-profile div{display:none}
+  .auth-brand>span,.header-brand>span{width:90px;height:58px;flex-basis:90px;background-size:86px 42px!important;background-position:center 2px!important}.auth-brand>span:after,.header-brand>span:after{height:13px;font-size:9px}.auth-brand b,.header-brand b{font-size:10px}.user-profile div{display:none}
   .auth-landing{padding:65px 10px 55px;background:linear-gradient(#fff 0 300px,#f3f8f0 300px)}.auth-landing:before{top:245px}.auth-heading span{font-size:23px}.auth-heading h1{font-size:32px}.auth-landing .login-card{margin-top:78px;padding:0}.auth-capabilities{display:none}
   .welcome-hero{height:270px;padding:70px 15px 0}.welcome-hero span{font-size:24px}.welcome-hero h1{font-size:32px}.welcome-hero>div:after{display:none}.journey-zone{padding:0 10px 55px}.journey-card{width:100%;padding:0 17px 18px}.journey-grid{grid-template-columns:1fr 1fr;gap:14px}.swap-route{display:none}.locked-date{grid-column:1/-1;padding:13px 0 0;border-left:0;border-top:1px solid #e3e8e2}.search-button{grid-column:1/-1}
   .page-results .page-top,.orders-page-top{height:270px;min-height:270px;padding:73px 14px}.page-results .page-top h1,.orders-page-top h1{font-size:32px}.page-results .back-button,.orders-page-top .back-button{left:15px;top:24px}.page-results .soft-button,.orders-page-top .soft-button{right:15px;top:25px}.page-results,.page-orders{background:linear-gradient(#fff 0 220px,#f3f8f0 220px)}

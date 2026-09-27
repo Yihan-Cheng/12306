@@ -117,7 +117,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="长三角 12306 组合查询演示")
     parser.add_argument("origin", help="出发站名，例如 上海虹桥")
     parser.add_argument("destination", help="到达站名，例如 黄山北")
-    parser.add_argument("--date", default="2026-09-07", dest="service_date")
+    parser.add_argument("--date", default="2026-10-07", dest="service_date")
     parser.add_argument("--passengers", type=int, default=1)
     parser.add_argument("--position", choices=list("ABCDF"))
     parser.add_argument("--strict-position", action="store_true")

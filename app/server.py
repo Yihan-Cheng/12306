@@ -262,7 +262,7 @@ def direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     origin = integer(params.get("from", [None])[0], "from")
     destination = integer(params.get("to", [None])[0], "to")
     passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
-    service_date = params.get("date", ["2026-09-07"])[0]
+    service_date = params.get("date", ["2026-10-07"])[0]
     if not DATE_RE.match(service_date):
         raise ApiError("date 格式必须为 YYYY-MM-DD")
     preferred = position(params.get("position", [None])[0])
@@ -287,7 +287,7 @@ def scoped_direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     from_station = integer(from_station_raw, "fromStation") if from_station_raw else None
     to_station = integer(to_station_raw, "toStation") if to_station_raw else None
     passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
-    service_date = params.get("date", ["2026-09-07"])[0]
+    service_date = params.get("date", ["2026-10-07"])[0]
     if not DATE_RE.match(service_date):
         raise ApiError("date 格式必须为 YYYY-MM-DD")
     if from_city == to_city and from_station is None and to_station is None:
@@ -356,7 +356,7 @@ def transfer_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     origin = integer(params.get("from", [None])[0], "from")
     destination = integer(params.get("to", [None])[0], "to")
     passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
-    service_date = params.get("date", ["2026-09-07"])[0]
+    service_date = params.get("date", ["2026-10-07"])[0]
     if not DATE_RE.match(service_date):
         raise ApiError("date 格式必须为 YYYY-MM-DD")
     preferred = position(params.get("position", [None])[0])
@@ -408,6 +408,8 @@ def ai_products(config: Dict[str, Any]) -> List[Dict[str, Any]]:
         target = (
             f" AND rf.run_id={config['run_id']}"
             f" AND rf.seat_type_id={config['seat_type_id']}"
+            f" AND rf.from_order={config['from_order']}"
+            f" AND rf.to_order={config['to_order']}"
         )
     return mysql_rows(
         "SELECT rf.run_id,rf.from_order,rf.to_order,rf.seat_type_id "
@@ -1062,12 +1064,17 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"metrics": metrics, "order_statuses": order_statuses,
                             "top_trains": top_trains, "pulse": pulse, "activity": activity})
         elif method == "GET" and parsed.path == "/api/admin/trains":
-            service_date = params.get("date", ["2026-09-07"])[0]
+            service_date = params.get("date", ["2026-10-07"])[0]
             if not DATE_RE.match(service_date):
                 raise ApiError("date 格式必须为 YYYY-MM-DD")
             query = str(params.get("q", [""])[0]).strip()[:20]
             # Control-center lookup is intentionally exact: G1 must not return G10/G12/G123.
-            where_query = "" if not query else f" AND tr.train_no={sql_text(query.upper())}"
+            # A train-number lookup is global across service dates. This keeps
+            # extra services manageable even when the date picker shows another day.
+            where_scope = (
+                f"tr.train_no={sql_text(query.upper())}"
+                if query else f"tr.service_date='{service_date}'"
+            )
             self.send_json(mysql_rows(
                 "SELECT tr.run_id,tr.train_no,tr.service_date,tr.stop_count,tr.run_status,"
                 "origin.station_name AS origin_name,destination.station_name AS destination_name,"
@@ -1080,7 +1087,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "JOIN v_train_run_stop last_stop ON last_stop.run_id=tr.run_id AND last_stop.station_order=tr.stop_count "
                 "JOIN station destination ON destination.station_id=last_stop.station_id "
                 "LEFT JOIN train_run_seat trs ON trs.run_id=tr.run_id "
-                f"WHERE tr.service_date='{service_date}'{where_query} "
+                f"WHERE {where_scope} "
                 "GROUP BY tr.run_id,tr.train_no,tr.service_date,tr.stop_count,tr.run_status,"
                 "origin.station_name,destination.station_name,first_stop.departure_at,last_stop.arrival_at "
                 "ORDER BY first_stop.departure_at,tr.train_no LIMIT 300;"
@@ -1098,13 +1105,27 @@ class Handler(SimpleHTTPRequestHandler):
             )
             if not run:
                 raise ApiError("车次不存在", 404)
+            from_raw = params.get("fromOrder", [""])[0]
+            to_raw = params.get("toOrder", [""])[0]
+            from_order = integer(from_raw, "fromOrder", 1, 64) if from_raw else 1
+            to_order = integer(to_raw, "toOrder", 2, 64) if to_raw else int(run[0]["stop_count"])
+            if from_order >= to_order or to_order > int(run[0]["stop_count"]):
+                raise ApiError("库存查询区间无效")
+            request_mask = f"fn_segment_mask({from_order},{to_order})"
+            stops = mysql_rows(
+                "SELECT v.station_order,s.station_name FROM v_train_run_stop v "
+                "JOIN station s ON s.station_id=v.station_id "
+                f"WHERE v.run_id={run_id} ORDER BY v.station_order;"
+            )
             groups = mysql_rows(
                 "SELECT ct.carriage_no,st.seat_type_id,st.seat_type_name,COUNT(*) AS total_seats,"
-                "SUM(trs.occupied_mask=0) AS free_full_route,SUM(trs.occupied_mask<>0) AS occupied_seats,"
-                "ROUND(100*SUM(trs.occupied_mask<>0)/COUNT(*),1) AS occupancy_rate,"
+                f"SUM((trs.occupied_mask & {request_mask})=0) AS free_interval,"
+                f"SUM((trs.occupied_mask & {request_mask})<>0) AS occupied_interval,"
+                f"ROUND(100*SUM((trs.occupied_mask & {request_mask})<>0)/COUNT(*),1) AS occupancy_rate,"
                 "(SELECT COUNT(*) FROM seat_allocation sa JOIN seat sx ON sx.seat_id=sa.seat_id "
                 " WHERE sa.run_id=trs.run_id AND sx.carriage_id=ct.carriage_id "
-                " AND sx.seat_type_id=st.seat_type_id AND sa.allocation_status IN ('HOLD','CONFIRMED')) AS active_holds "
+                " AND sx.seat_type_id=st.seat_type_id AND sa.allocation_status IN ('HOLD','CONFIRMED') "
+                f" AND (sa.segment_mask & {request_mask})<>0) AS active_holds "
                 "FROM train_run_seat trs JOIN seat s ON s.seat_id=trs.seat_id "
                 "JOIN carriage_template ct ON ct.carriage_id=s.carriage_id "
                 "JOIN seat_type st ON st.seat_type_id=s.seat_type_id "
@@ -1113,13 +1134,15 @@ class Handler(SimpleHTTPRequestHandler):
             )
             seats = mysql_rows(
                 "SELECT ct.carriage_no,st.seat_type_name,s.seat_no,s.position_code,"
-                "trs.occupied_mask,CASE WHEN trs.occupied_mask=0 THEN 'FREE' ELSE 'OCCUPIED' END seat_status "
+                f"trs.occupied_mask,CASE WHEN (trs.occupied_mask & {request_mask})=0 "
+                "THEN 'FREE' ELSE 'OCCUPIED' END seat_status "
                 "FROM train_run_seat trs JOIN seat s ON s.seat_id=trs.seat_id "
                 "JOIN carriage_template ct ON ct.carriage_id=s.carriage_id "
                 "JOIN seat_type st ON st.seat_type_id=s.seat_type_id "
                 f"WHERE trs.run_id={run_id} ORDER BY ct.carriage_no,s.seat_no;"
             )
-            self.send_json({"run": run[0], "groups": groups, "seats": seats})
+            self.send_json({"run": run[0], "stops": stops, "from_order": from_order,
+                            "to_order": to_order, "groups": groups, "seats": seats})
         elif method == "GET" and parsed.path == "/api/admin/orders":
             status = str(params.get("status", [""])[0]).strip()
             sort = str(params.get("sort", ["desc"])[0]).lower()
@@ -1215,19 +1238,24 @@ class Handler(SimpleHTTPRequestHandler):
             )
             self.send_json({"summary": summary, "rows": rows})
         elif method == "GET" and parsed.path == "/api/admin/ai/options":
+            train_query = str(params.get("q", [""])[0]).strip().upper()[:20]
+            run_filter = (
+                f" AND tr.train_no={sql_text(train_query)}" if train_query else ""
+            )
             runs = mysql_rows(
-                "SELECT tr.run_id,tr.train_no,origin.station_name origin_name,dest.station_name destination_name "
+                "SELECT tr.run_id,tr.train_no,tr.service_date,tr.run_status,"
+                "origin.station_name origin_name,dest.station_name destination_name "
                 "FROM train_run tr JOIN v_train_run_stop vo ON vo.run_id=tr.run_id AND vo.station_order=1 "
                 "JOIN station origin ON origin.station_id=vo.station_id "
                 "JOIN v_train_run_stop vd ON vd.run_id=tr.run_id AND vd.station_order=tr.stop_count "
-                "JOIN station dest ON dest.station_id=vd.station_id WHERE tr.run_status='ON_SALE' "
+                "JOIN station dest ON dest.station_id=vd.station_id WHERE tr.run_status='ON_SALE'" + run_filter + " "
                 "ORDER BY tr.train_no LIMIT 3000;"
             )
             seat_types = mysql_rows(
                 "SELECT trs.run_id,st.seat_type_id,st.seat_type_name,COUNT(*) total_seats,"
                 "SUM(trs.occupied_mask=0) free_full_route FROM train_run_seat trs "
                 "JOIN seat s ON s.seat_id=trs.seat_id JOIN seat_type st ON st.seat_type_id=s.seat_type_id "
-                "JOIN train_run tr ON tr.run_id=trs.run_id WHERE tr.run_status='ON_SALE' "
+                "JOIN train_run tr ON tr.run_id=trs.run_id WHERE tr.run_status='ON_SALE'" + run_filter + " "
                 "GROUP BY trs.run_id,st.seat_type_id,st.seat_type_name ORDER BY st.display_order;"
             )
             with AI_JOBS_LOCK:
@@ -1236,10 +1264,13 @@ class Handler(SimpleHTTPRequestHandler):
         elif method == "GET" and parsed.path == "/api/admin/ai/orders":
             run_raw = params.get("runId", [""])[0]
             run_id = integer(run_raw, "runId") if run_raw else None
+            train_no = str(params.get("trainNo", [""])[0]).strip().upper()[:20]
             query = str(params.get("q", [""])[0]).strip()[:80]
             filters = ["u.username LIKE 'ai\\_%'"]
             if run_id:
                 filters.append(f"d.run_id={run_id}")
+            if train_no:
+                filters.append(f"UPPER(d.train_no)={sql_text(train_no)}")
             if query:
                 filters.append(
                     f"(d.passenger_name LIKE CONCAT('%',{sql_text(query)},'%') "
@@ -1278,6 +1309,10 @@ class Handler(SimpleHTTPRequestHandler):
             if mode == "targeted":
                 config["run_id"] = integer(body.get("runId"), "runId")
                 config["seat_type_id"] = integer(body.get("seatTypeId"), "seatTypeId", 1, 65535)
+                config["from_order"] = integer(body.get("fromOrder"), "fromOrder", 1, 64)
+                config["to_order"] = integer(body.get("toOrder"), "toOrder", 2, 64)
+                if config["from_order"] >= config["to_order"]:
+                    raise ApiError("下车站必须位于上车站之后")
             job_id = uuid.uuid4().hex[:8].upper()
             job = {
                 "job_id": job_id, "mode": mode, "users": config["users"],
@@ -1296,11 +1331,17 @@ class Handler(SimpleHTTPRequestHandler):
         elif method == "POST" and parsed.path == "/api/admin/ai/refund-batch":
             body = json_body(self)
             run_id = integer(body.get("runId"), "runId")
+            from_order = integer(body.get("fromOrder"), "fromOrder", 1, 64)
+            to_order = integer(body.get("toOrder"), "toOrder", 2, 64)
+            if from_order >= to_order:
+                raise ApiError("下车站必须位于上车站之后")
             count = integer(body.get("count"), "count", 1, 100)
             candidates = mysql_rows(
                 "SELECT DISTINCT d.order_id FROM v_order_detail d "
+                "JOIN order_item oi ON oi.order_item_id=d.order_item_id "
                 "JOIN app_user u ON u.user_id=d.user_id "
                 f"WHERE u.username LIKE 'ai\\_%' AND d.run_id={run_id} "
+                f"AND oi.from_order={from_order} AND oi.to_order={to_order} "
                 "AND d.order_status IN ('PAID','PENDING_PAYMENT') ORDER BY RAND() "
                 f"LIMIT {count};"
             )
