@@ -8,17 +8,17 @@ echo CR12306 test data cleanup
 echo This removes users, passengers, orders, payments, refunds, waitlists and AI test data.
 echo Trains, stations, schedules, fares, seats and administrator accounts are preserved.
 echo.
-set "CONFIRM="
-set /p "CONFIRM=Type CLEAN to continue: "
+set "CONFIRM=%~1"
+if not defined CONFIRM set /p "CONFIRM=Type CLEAN to continue: "
 if /I not "%CONFIRM%"=="CLEAN" goto cancelled
 if not exist "%~dp0database\reset_test_data.sql" goto missing_sql
-docker version >nul 2>&1
+where docker >nul 2>&1
 if errorlevel 1 goto no_docker
-docker inspect -f "{{.State.Running}}" mysql84 2>nul | findstr /I /X "true" >nul
+docker inspect -f "{{.State.Running}}" mysql84 2>nul | findstr /I "true" >nul
 if errorlevel 1 goto no_mysql
 echo.
 echo Cleaning database...
-docker exec -i -e MYSQL_PWD=123456 mysql84 mysql --default-character-set=utf8mb4 -uroot CR12306 < "%~dp0database\reset_test_data.sql"
+type "database\reset_test_data.sql" | docker exec -i -e MYSQL_PWD=123456 mysql84 mysql --default-character-set=utf8mb4 -uroot CR12306
 if errorlevel 1 goto failed
 echo.
 echo Cleanup completed. Current counts:
