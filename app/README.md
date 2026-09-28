@@ -1,6 +1,6 @@
 # RailFlow 长三角智慧铁路演示系统
 
-这是数据库课程项目的完整 Web 应用，前端不依赖构建工具，HTTP 服务只使用 Python 标准库。动态库存、订单生命周期、候补匹配、管理员认证、预付候补与订票削峰缓冲均调用 MySQL V002～V014 的真实表、视图和存储过程。
+这是数据库课程项目的完整 Web 应用，前端不依赖构建工具，HTTP 服务只使用 Python 标准库。动态库存、订单生命周期、候补匹配、管理员认证、预付候补与订票削峰缓冲均调用 MySQL V002～V018 的真实表、视图和存储过程。
 
 ## 页面
 
@@ -35,6 +35,10 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 ```powershell
 Get-Content database/migrations/V013__admin_auth_and_booking_buffer.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
 Get-Content database/migrations/V014__wait_prepayment.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
+Get-Content database/migrations/V015__add_g8359_extra_service.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
+Get-Content database/migrations/V016__unify_demo_service_date.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
+Get-Content database/migrations/V017__fast_itinerary_conflict_guard.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
+Get-Content database/migrations/V018__fast_order_detail_view.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
 ```
 
 再启动服务：

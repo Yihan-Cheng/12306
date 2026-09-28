@@ -23,6 +23,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
+from live_inventory import inventory_snapshot
 
 
 ROOT = Path(__file__).resolve().parent
@@ -787,17 +788,25 @@ class Handler(SimpleHTTPRequestHandler):
                 "SELECT wr.wait_request_id,wr.wait_request_no,wr.wait_status,wr.created_at,"
                 "wr.cutoff_at,wr.matched_order_id,tr.train_no,st.seat_type_name,"
                 "origin_station.station_name from_station_name,dest_station.station_name to_station_name,"
-                "origin.departure_at,dest.arrival_at,wp.amount,wp.payment_status,wp.refunded_at,"
+                "TIMESTAMP(tr.service_date,origin.departure_time) "
+                "+ INTERVAL origin.departure_day_offset DAY AS departure_at,"
+                "TIMESTAMP(tr.service_date,dest.arrival_time) "
+                "+ INTERVAL dest.arrival_day_offset DAY AS arrival_at,"
+                "wp.amount,wp.payment_status,wp.refunded_at,"
+                "matched.order_status matched_order_status,"
                 "p.passenger_name FROM wait_request wr "
                 "JOIN wait_passenger wps ON wps.wait_request_id=wr.wait_request_id "
                 "JOIN passenger p ON p.passenger_id=wps.passenger_id "
                 "JOIN train_run tr ON tr.run_id=wr.run_id "
                 "JOIN seat_type st ON st.seat_type_id=wr.seat_type_id "
-                "JOIN v_train_run_stop origin ON origin.run_id=wr.run_id AND origin.station_order=wr.from_order "
+                "JOIN train_station origin ON origin.train_no=tr.train_no "
+                "AND origin.station_order=wr.from_order "
                 "JOIN station origin_station ON origin_station.station_id=origin.station_id "
-                "JOIN v_train_run_stop dest ON dest.run_id=wr.run_id AND dest.station_order=wr.to_order "
+                "JOIN train_station dest ON dest.train_no=tr.train_no "
+                "AND dest.station_order=wr.to_order "
                 "JOIN station dest_station ON dest_station.station_id=dest.station_id "
                 "LEFT JOIN wait_payment wp ON wp.wait_request_id=wr.wait_request_id "
+                "LEFT JOIN ticket_order matched ON matched.order_id=wr.matched_order_id "
                 f"WHERE wr.user_id={user_id} ORDER BY wr.created_at DESC;"
             ))
         elif method == "POST" and parsed.path == "/api/register":
@@ -1092,6 +1101,19 @@ class Handler(SimpleHTTPRequestHandler):
                 "origin.station_name,destination.station_name,first_stop.departure_at,last_stop.arrival_at "
                 "ORDER BY first_stop.departure_at,tr.train_no LIMIT 300;"
             ))
+        elif method == "GET" and parsed.path == "/api/admin/live-inventory":
+            run_id = integer(params.get("runId", [None])[0], "runId")
+            from_order = integer(params.get("fromOrder", [1])[0], "fromOrder", 1, 64)
+            optional = {}
+            for query_key, key, maximum in (("toOrder", "to_order", 64),
+                                             ("seatTypeId", "seat_type_id", 65535),
+                                             ("carriageNo", "carriage_no", 65535)):
+                raw = params.get(query_key, [""])[0]
+                optional[key] = integer(raw, query_key, 1, maximum) if raw else None
+            try:
+                self.send_json(inventory_snapshot(mysql_rows, run_id, from_order, **optional))
+            except ValueError as exc:
+                raise ApiError(str(exc)) from exc
         elif method == "GET" and parsed.path == "/api/admin/train-seats":
             run_id = integer(params.get("runId", [None])[0], "runId")
             run = mysql_rows(
@@ -1245,10 +1267,14 @@ class Handler(SimpleHTTPRequestHandler):
             runs = mysql_rows(
                 "SELECT tr.run_id,tr.train_no,tr.service_date,tr.run_status,"
                 "origin.station_name origin_name,dest.station_name destination_name "
-                "FROM train_run tr JOIN v_train_run_stop vo ON vo.run_id=tr.run_id AND vo.station_order=1 "
-                "JOIN station origin ON origin.station_id=vo.station_id "
-                "JOIN v_train_run_stop vd ON vd.run_id=tr.run_id AND vd.station_order=tr.stop_count "
-                "JOIN station dest ON dest.station_id=vd.station_id WHERE tr.run_status='ON_SALE'" + run_filter + " "
+                "FROM train_run tr "
+                "JOIN train_station first_stop ON first_stop.train_no=tr.train_no "
+                "AND first_stop.station_order=1 "
+                "JOIN station origin ON origin.station_id=first_stop.station_id "
+                "JOIN train_station last_stop ON last_stop.train_no=tr.train_no "
+                "AND last_stop.station_order=tr.stop_count "
+                "JOIN station dest ON dest.station_id=last_stop.station_id "
+                "WHERE tr.run_status='ON_SALE'" + run_filter + " "
                 "ORDER BY tr.train_no LIMIT 3000;"
             )
             seat_types = mysql_rows(
@@ -1366,7 +1392,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": f"服务器错误：{exc}"}, 500)
             return
         parsed = urlparse(self.path)
-        if parsed.path in {"/admin", "/admin.html"}:
+        if parsed.path in {"/admin", "/admin.html", "/admin-monitor.html"}:
             try:
                 if not current_admin(self):
                     self.send_response(302)

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>现场看板 · RailFlow</title><link rel="stylesheet" href="/admin-monitor.css?v=1"></head>
+<body>
+  <header class="topbar"><div class="brand"><span>R</span><div><small>RAILFLOW / LIVE</small><h1>抢票现场看板</h1></div></div><div class="top-actions"><span id="connection" role="status">正在连接…</span><button id="pause">暂停刷新</button><button id="fullscreen">全屏投放</button><a href="/admin.html">返回控制台 ↗</a></div></header>
+  <main>
+    <section class="controls" aria-label="监控范围">
+      <form id="trainForm"><label>车次号<input id="trainNo" value="G8359" maxlength="20" autocomplete="off" required></label><button id="findTrain" class="primary">查看车次</button></form>
+      <label>运行日期<select id="runSelect" disabled></select></label>
+      <label>席别<select id="seatType" disabled></select></label>
+      <label>车厢<select id="carriage" disabled></select></label>
+      <label>上车站<select id="fromStop" disabled></select></label>
+      <label>下车站<select id="toStop" disabled></select></label>
+    </section>
+    <div id="error" class="error" role="alert" hidden></div>
+    <section class="route-heading"><div><span class="eyebrow">当前观察范围</span><h2 id="routeTitle">请选择车次</h2><p id="scopeNote">座位按所选乘车区间计算；点击座位查看乘客与行程。</p></div><div class="updated"><span>最后成功更新</span><strong id="updatedAt">—</strong><small>每 2 秒刷新 · 变化后自动高亮</small></div></section>
+    <section class="stats" aria-label="实时统计">
+      <article class="free-stat"><span>区间余票</span><strong id="freeCount">—</strong><small id="totalCount">所选范围可售座位</small></article>
+      <article><span>已支付占座</span><strong id="paidCount">—</strong><small>含候补兑现座位</small></article>
+      <article><span>正在锁座</span><strong id="heldCount">—</strong><small>等待支付确认</small></article>
+      <article><span>候补人数</span><strong id="waitingCount">—</strong><small>所选席别、相交区间</small></article>
+      <article><span>候补已兑现</span><strong id="fulfilledCount">—</strong><small>目前仍持有效车票</small></article>
+    </section>
+    <div class="board-layout">
+      <section class="panel seats-panel"><div class="panel-heading"><div><h3>席位与乘客</h3><p>显示登录昵称；同一座位可由不重叠区间的乘客复用。</p></div><div class="legend"><span class="free">可售</span><span class="paid">已支付</span><span class="hold">锁座中</span><span class="waitlist">候补兑现</span></div></div><div id="seatGroups" class="seat-groups"><p class="empty">正在读取库存…</p></div></section>
+      <aside class="right-column">
+        <section class="panel"><div class="panel-heading"><div><h3>谁在候补 <b id="queueCount">0</b></h3><p>候补不指定车厢，切换车厢不影响此列表。按公平保护、创建时间排序；偏好和区间影响兑现。</p></div></div><div id="waitList" class="queue-list"><p class="empty">正在读取候补…</p></div></section>
+        <section class="panel"><div class="panel-heading"><div><h3>最近兑现</h3><p>展示所选区间相关的最近 8 笔记录。</p></div></div><div id="fulfilledList" class="queue-list"><p class="empty">暂无记录</p></div></section>
+        <section class="panel"><div class="panel-heading"><div><h3>现场变化</h3><p>本窗口从打开或切换筛选后观察到的变化。</p></div></div><div id="changes" class="changes"><p class="empty">等待下一次座位或候补变化</p></div></section>
+      </aside>
+    </div>
+  </main>
+  <dialog id="seatDialog"><div class="dialog-top"><h2 id="seatTitle">座位详情</h2><button id="closeSeat" aria-label="关闭座位详情">×</button></div><div id="seatDetails"></div></dialog>
+  <script src="/admin-monitor.js?v=1"></script>
+</body></html>

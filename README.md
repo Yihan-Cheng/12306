@@ -7,13 +7,14 @@
 ```
 12306/
 ├── app/                  # Python 服务、用户端和独立管理端
-├── database/             # V002～V016 迁移、验收脚本和备份
+├── database/             # V002～V018 迁移、验收脚本和备份
 ├── db-init/              # Docker 首次初始化 SQL
 ├── docs/                 # 运行说明、设计文档、理论分析和论文
 ├── 代码/                 # MySQL → Neo4j 与数据可视化工具
 ├── 铁路数据集/           # 原始铁路数据与辅助项目
 ├── docker-compose.yml    # MySQL、Neo4j、Redis
 ├── start.cmd             # Windows 双击启动入口
+├── start-tunnel.cmd      # 课堂公网演示入口
 ├── start.ps1             # 完整启动与迁移脚本
 ├── clean.cmd             # Windows 双击清理测试数据
 └── clean.ps1             # 带确认和结果校验的清理脚本
@@ -33,7 +34,7 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 
 1. 启动 Docker Desktop；
 2. 创建或启动 MySQL 8.4、Neo4j 5.26 和 Redis 7.4；
-3. 首次运行时依次执行 V002～V016 数据库迁移；
+3. 首次运行时依次执行 V002～V018 数据库迁移；
 4. 必要时从 MySQL 重建 Neo4j 查询图；
 5. 自动寻找本机 Python 3 并启动 Web 服务。
 
@@ -56,6 +57,16 @@ powershell -ExecutionPolicy Bypass -File .\start.ps1
 ```
 
 Redis 只是瞬时流量的唤醒与加速层；订单请求会先持久化到 MySQL 的 `booking_request_buffer`，所以 Redis 不可用时系统会自动退回 MySQL 轮询，不会丢失订单。
+
+## 课堂公网演示
+
+要让同学用手机访问本机网站，双击 `start-tunnel.cmd`。脚本启动本地服务，并通过 Cloudflare Quick Tunnel 生成临时公网地址。需要先安装 `cloudflared`：
+
+```powershell
+winget install --id Cloudflare.cloudflared
+```
+
+操作步骤见 [课堂公网演示](docs/课堂公网演示.md)。
 
 ## 清除测试数据
 

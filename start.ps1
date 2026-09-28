@@ -1,7 +1,9 @@
 param(
     [int]$Port = 8080,
     [switch]$NoRedis,
-    [switch]$SkipGraphSync
+    [switch]$SkipGraphSync,
+    [int]$BookingWorkers = 8,
+    [string]$AdminPassword = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -154,6 +156,18 @@ if ($hasTicketingSchema -eq '0') {
     } else {
         Write-Host '    Database already contains V016 (unified demo date).' -ForegroundColor Green
     }
+    $hasV017 = Invoke-MySql "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema='CR12306' AND trigger_name='trg_order_item_passenger_itinerary_guard' AND action_statement LIKE '%STRAIGHT_JOIN train_run%';" -Scalar
+    if ($hasV017 -eq '0') {
+        Apply-Migration (Join-Path $repoRoot 'database\migrations\V017__fast_itinerary_conflict_guard.sql')
+    } else {
+        Write-Host '    Database already contains V017 (fast itinerary conflict guard).' -ForegroundColor Green
+    }
+    $hasV018 = Invoke-MySql "SELECT COUNT(*) FROM information_schema.views WHERE table_schema='CR12306' AND table_name='v_order_detail' AND view_definition LIKE '%straight_join%';" -Scalar
+    if ($hasV018 -eq '0') {
+        Apply-Migration (Join-Path $repoRoot 'database\migrations\V018__fast_order_detail_view.sql')
+    } else {
+        Write-Host '    Database already contains V018 (fast order detail view).' -ForegroundColor Green
+    }
 }
 
 if (-not $SkipGraphSync) {
@@ -215,12 +229,18 @@ $env:CR12306_NEO4J_PASSWORD = '12345678'
 $env:CR12306_REDIS_ENABLED = if ($NoRedis) { '0' } else { '1' }
 $env:CR12306_REDIS_HOST = '127.0.0.1'
 $env:CR12306_REDIS_PORT = '6379'
+$env:CR12306_BOOKING_WORKERS = [string]([Math]::Max(1, [Math]::Min(8, $BookingWorkers)))
+if ($AdminPassword) { $env:CR12306_ADMIN_PASSWORD = $AdminPassword }
 $env:PYTHONUTF8 = '1'
 $env:PYTHONUNBUFFERED = '1'
 
 Write-Host "`nUser site:  http://127.0.0.1:$Port/" -ForegroundColor Green
 Write-Host "Admin site: http://127.0.0.1:$Port/admin-login.html" -ForegroundColor Green
-Write-Host 'Initial admin: admin / RailFlow@123' -ForegroundColor Yellow
+if ($AdminPassword) {
+    Write-Host 'Initial admin: admin / (the -AdminPassword you passed)' -ForegroundColor Yellow
+} else {
+    Write-Host 'Initial admin: admin / RailFlow@123' -ForegroundColor Yellow
+}
 Write-Host 'Press Ctrl+C to stop the service.' -ForegroundColor DarkGray
 Write-Step 'Starting CR12306 service'
 & $pythonExe (Join-Path $repoRoot 'app\server.py')

@@ -8,7 +8,9 @@ services:
       MYSQL_DATABASE: CR12306
       TZ: Asia/Shanghai
     ports:
-      - "3306:3306"
+      # 本机常装有 Windows 版 MySQL80 占用 3306，故映射到 3307。
+      # 主服务经 docker exec 访问 MySQL，不依赖宿主机端口；仅辅助脚本 query_service.py 等需要连 3307。
+      - "3307:3306"
     volumes:
       - ./db-init/CR12306.sql:/docker-entrypoint-initdb.d/001_CR12306.sql:ro
       - mysql-data:/var/lib/mysql

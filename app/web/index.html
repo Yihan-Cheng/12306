@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#008c23">
   <title>CR · 中国铁路智慧出行</title>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/brand.css">
+  <link rel="stylesheet" href="/brand.css?v=6">
   <link rel="stylesheet" href="/ticket.css">
 </head>
 <body>
@@ -40,6 +40,7 @@
         <div class="nav-item"><button id="routesNav">列车与线路 <i>⌄</i></button><div class="nav-preview"><strong>列车与线路</strong><p>查看已查询车次、完整经停站和实时余票。</p><span>查看查询结果 →</span></div></div>
         <div class="nav-item"><button id="showOrders">订单 <i>⌄</i></button><div class="nav-preview"><strong>我的车票</strong><p>查看候补状态、电子车票和退票入口。</p><span>进入订单页面 →</span></div></div>
       </nav>
+      <button id="mobileOrders" class="mobile-orders-button" type="button" onclick="openOrders()">我的订单</button>
       <div class="user-profile"><span id="profileAvatar">旅</span><div><b id="profileName">乘车人</b><small>已登录</small></div><button id="logout" title="切换用户">退出</button></div>
     </header>
 
@@ -97,6 +98,6 @@
   <div id="ticketModal" class="modal ticket-modal" aria-hidden="true"><div class="modal-card ticket-modal-card"><button class="modal-close" data-close="ticketModal">×</button><div id="ticketContent" class="ticket-modal-content"></div></div></div>
   <div id="noticeModal" class="modal" aria-hidden="true"><div class="modal-card notice-modal-card"><div class="notice-icon">!</div><h2 id="noticeTitle">座位分配提示</h2><p id="noticeText"></p><button id="noticeOkay" class="primary-button">我知道了</button></div></div>
   <div id="toast" class="toast"></div>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=5"></script>
 </body>
 </html>
