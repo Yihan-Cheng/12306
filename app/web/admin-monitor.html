@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>现场看板 · RailFlow</title><link rel="stylesheet" href="/admin-monitor.css?v=1"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>现场看板 · RailFlow</title><link rel="stylesheet" href="/admin-monitor.css?v=2"></head>
 <body>
-  <header class="topbar"><div class="brand"><span>R</span><div><small>RAILFLOW / LIVE</small><h1>抢票现场看板</h1></div></div><div class="top-actions"><span id="connection" role="status">正在连接…</span><button id="pause">暂停刷新</button><button id="fullscreen">全屏投放</button><a href="/admin.html">返回控制台 ↗</a></div></header>
+  <header class="topbar"><div class="brand"><span>R</span><div><small>RAILFLOW / LIVE</small><h1>抢票现场看板</h1></div></div><div class="top-actions"><span id="connection" role="status">正在连接…</span><button id="toggleFilters" aria-expanded="false">修改筛选</button><button id="pause">暂停刷新</button><button id="fullscreen">全屏投放</button><a href="/admin.html">返回控制台 ↗</a></div></header>
   <main>
     <section class="controls" aria-label="监控范围">
       <form id="trainForm"><label>车次号<input id="trainNo" value="G8359" maxlength="20" autocomplete="off" required></label><button id="findTrain" class="primary">查看车次</button></form>
@@ -31,5 +31,5 @@
     </div>
   </main>
   <dialog id="seatDialog"><div class="dialog-top"><h2 id="seatTitle">座位详情</h2><button id="closeSeat" aria-label="关闭座位详情">×</button></div><div id="seatDetails"></div></dialog>
-  <script src="/admin-monitor.js?v=1"></script>
+  <script src="/admin-monitor.js?v=2"></script>
 </body></html>

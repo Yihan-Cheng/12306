@@ -84,7 +84,7 @@ function seatMarkup(seat,changed) {
   const caption=names || (seat.status==='FREE'?'等待抢票':'占用中');
   const hint=occupants.length?`${occupants[0].from_station_name} → ${occupants[0].to_station_name}${occupants.length>1?' 等':''}`:
     seat.occupants.length?'其他区间有乘客 · 本区间可售':'本区间可售';
-  return `<button class="seat ${seat.status.toLowerCase()} ${changed.has(seat.seat_id)?'changed':''}" data-seat-id="${seat.seat_id}" aria-label="${escapeHtml(`${seat.carriage_no}车 ${seat.seat_no} ${labels[seat.status]} ${caption}`)}"><div><b>${escapeHtml(seat.seat_no)}</b><em>${labels[seat.status]}</em></div><strong title="${escapeHtml(caption)}">${escapeHtml(caption)}</strong><small>${escapeHtml(hint)}</small></button>`;
+  return `<button class="seat ${seat.status.toLowerCase()} ${changed.has(seat.seat_id)?'changed':''}" data-seat-id="${seat.seat_id}" aria-label="${escapeHtml(`${seat.carriage_no}车 ${seat.seat_no} ${labels[seat.status]} ${caption}`)}"><div><b>${escapeHtml(seat.seat_no)}</b><em>${labels[seat.status]}</em></div><strong title="${escapeHtml(caption)}">${escapeHtml(caption)}</strong><small title="${escapeHtml(hint)}">${escapeHtml(hint)}</small></button>`;
 }
 function waitMarkup(wait) {
   const names=(wait.passengers||[]).map(p=>p.passenger_name).join('、');
@@ -122,7 +122,7 @@ function renderSeatDetails() {
   if (!seat) { $('seatDialog').close(); return; }
   $('seatTitle').textContent=`${seat.carriage_no} 车 ${seat.seat_no} · ${seat.seat_type_name}`;
   $('seatDetails').innerHTML=`<p class="tag ${seat.status.toLowerCase()}">所选区间：${labels[seat.status]}</p>`+
-    (seat.occupants.map(a=>`<article class="occupant"><strong>${escapeHtml(a.passenger_name)}</strong> <span class="tag">${a.is_ai?'AI 乘客':'用户'}</span><p>${escapeHtml(a.from_station_name)} → ${escapeHtml(a.to_station_name)}</p><p>${a.in_interval?'与所选区间重叠':'其他区间，本区间仍可售'} · ${a.allocation_status==='HOLD'?'锁座中':a.order_source==='WAITLIST'?'候补兑现':'已支付'}</p><small>订单 #${a.order_id} · ${escapeHtml(String(a.allocated_at).replace('T',' ').slice(0,19))}</small></article>`).join('')||'<p class="empty">该座位当前没有有效占用</p>');
+    (seat.occupants.map(a=>`<article class="occupant"><strong>${escapeHtml(a.passenger_name)}</strong> <span class="tag">${a.is_ai?'AI 乘客':'用户'}</span><p>${escapeHtml(a.from_station_name)} → ${escapeHtml(a.to_station_name)}</p><p>${a.in_interval?'与所选区间重叠':'此乘客的行程与所选区间不重叠'} · ${a.allocation_status==='HOLD'?'锁座中':a.order_source==='WAITLIST'?'候补兑现':'已支付'}</p><small>订单 #${a.order_id} · ${escapeHtml(String(a.allocated_at).replace('T',' ').slice(0,19))}</small></article>`).join('')||'<p class="empty">该座位当前没有有效占用</p>');
 }
 async function refresh() {
   clearTimeout(timer);
@@ -160,7 +160,8 @@ $('fromStop').onchange=()=>{const from=Number($('fromStop').value);if(Number(sel
 $('toStop').onchange=()=>changeFilter('toOrder',Number($('toStop').value));
 $('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'恢复刷新':'暂停刷新';clearTimeout(timer);setStatus(paused?'已暂停刷新':'正在刷新…',paused);if(!paused)refresh();};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{$('error').hidden=false;$('error').textContent='浏览器未允许全屏，请使用浏览器的全屏功能。';}};
-document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'退出全屏':'全屏投放';});
+$('toggleFilters').onclick=()=>{const expanded=document.body.classList.toggle('filters-open');$('toggleFilters').textContent=expanded?'收起筛选':'修改筛选';$('toggleFilters').setAttribute('aria-expanded',String(expanded));};
+document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'退出全屏':'全屏投放';document.body.classList.remove('filters-open');$('toggleFilters').textContent='修改筛选';$('toggleFilters').setAttribute('aria-expanded','false');});
 document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden&&!paused)refresh();});
 $('seatGroups').onclick=event=>{const button=event.target.closest('[data-seat-id]');if(!button)return;selectedSeat=Number(button.dataset.seatId);renderSeatDetails();$('seatDialog').showModal();};
 $('closeSeat').onclick=()=>$('seatDialog').close();
