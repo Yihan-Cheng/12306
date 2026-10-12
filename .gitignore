@@ -37,3 +37,8 @@ mysql-data/
 
 # ===== 日志 =====
 *.log
+
+# ===== Codex / presentation build caches =====
+.codex-finalizer/
+.codex-ppt-build/
+tmp/
