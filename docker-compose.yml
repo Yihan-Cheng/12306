@@ -3,6 +3,8 @@ services:
     image: mysql:8.4
     container_name: mysql84
     restart: unless-stopped
+    # 44 万行 train_run_seat 是查询热点，默认 128M 缓冲池装不下工作集。
+    command: ["--innodb-buffer-pool-size=512M"]
     environment:
       MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_DATABASE: CR12306

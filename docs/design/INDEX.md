@@ -29,6 +29,7 @@
 | [11-query-architecture-and-execution.md](11-query-architecture-and-execution.md) | MySQL 直达余票、Neo4j 换乘候选与权威复核 |
 | [12-web-application-design-and-execution.md](12-web-application-design-and-execution.md) | HTTP API、演示界面、安全边界与端到端验收 |
 | [13-current-system-technical-summary.md](13-current-system-technical-summary.md) | 当前完整系统、管理端、缓冲区与候补实现总结 |
+| [14-query-latency-optimization.md](14-query-latency-optimization.md) | 连接池替换 docker exec、并发上限与前端轮询优化 |
 
 ## 迁移执行顺序
 

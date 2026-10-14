@@ -1,6 +1,6 @@
 # RailFlow 长三角智慧铁路演示系统
 
-这是数据库课程项目的完整 Web 应用，前端不依赖构建工具，HTTP 服务只使用 Python 标准库。动态库存、订单生命周期、候补匹配、管理员认证、预付候补与订票削峰缓冲均调用 MySQL V002～V018 的真实表、视图和存储过程。
+这是数据库课程项目的完整 Web 应用，前端不依赖构建工具，HTTP 服务只使用 Python 标准库。动态库存、订单生命周期、候补匹配、管理员认证、预付候补与订票削峰缓冲均调用 MySQL V002～V019 的真实表、视图和存储过程。
 
 ## 页面
 
@@ -39,6 +39,7 @@ Get-Content database/migrations/V015__add_g8359_extra_service.sql -Raw | docker 
 Get-Content database/migrations/V016__unify_demo_service_date.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
 Get-Content database/migrations/V017__fast_itinerary_conflict_guard.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
 Get-Content database/migrations/V018__fast_order_detail_view.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
+Get-Content database/migrations/V019__move_demo_service_date_to_oct14.sql -Raw | docker exec -i mysql84 mysql --default-character-set=utf8mb4 -uroot -p123456 CR12306
 ```
 
 再启动服务：
@@ -64,6 +65,20 @@ $env:CR12306_REDIS_HOST = '127.0.0.1'
 python app/server.py
 ```
 
+数据库访问默认走**持久连接池**（`app/db.py`，PyMySQL，宿主 `127.0.0.1:3307`；Neo4j 走 bolt `127.0.0.1:7687`），不再对每条 SQL 执行 `docker exec`。可覆盖：
+
+```powershell
+$env:CR12306_DB_BACKEND = 'pool'          # pool（默认）| exec（旧实现，回滚用）
+$env:CR12306_MYSQL_HOST = '127.0.0.1'
+$env:CR12306_MYSQL_PORT = '3307'
+$env:CR12306_MYSQL_POOL_SIZE = '16'
+$env:CR12306_NEO4J_URI = 'bolt://127.0.0.1:7687'
+$env:CR12306_MAX_THREADS = '64'
+$env:CR12306_SEARCH_CACHE_TTL = '4'
+```
+
+此时 `CR12306_MYSQL_CONTAINER` / `CR12306_NEO4J_CONTAINER` 仅在 `CR12306_DB_BACKEND=exec` 时生效。
+
 首次登录且 `admin_user` 为空时，服务会根据环境变量创建第一个管理员。未设置环境变量时，课程演示默认值为 `admin / RailFlow@123`，协作或展示前应修改密码配置并清理默认管理员。管理员密码使用 PBKDF2-SHA256 加盐保存，会话令牌只保存 SHA-256 摘要。
 
 用户端“提交订单”先进入 `booking_request_buffer`，后台工作者通过数据库租约和 `FOR UPDATE SKIP LOCKED` 并行领取，再调用原有的 `sp_create_order_hold` 完成最终锁座。查询页每 2 秒静默同步区间余票，确认页提交前再次校验；即使页面快照短暂过期，存储过程仍会在行锁内二次检查并拒绝超卖。
@@ -78,4 +93,4 @@ Redis 采用可选的 `LPUSH/BRPOP` 唤醒队列吸收瞬时请求并降低数�
 
 AI 任务会创建独立模拟账户，并通过 `sp_create_order_hold`、`sp_confirm_order_payment` 和 `sp_create_wait_request` 操作真实演示库存。任务支持 1～500 名用户、1～30 个并发线程、随机/定向车票与自定义支付率。管理员可在同一页面查看每位 AI 乘客的具体订单，单独退票或按车次随机批量释放席位。数据会保留在数据库中，方便检查防超卖、退票回补、订单事件和候补队列；请勿连接生产数据库。
 
-本项目为本机课程演示方案。生产环境还需加入认证授权、连接池、CSRF/TLS、速率限制、持久任务队列与密钥管理。
+本项目为本机课程演示方案。生产环境还需加入认证授权、连接池健康检查与限流、CSRF/TLS、持久任务队列与密钥管理。查询延迟与并发优化的完整分析与实测见 `docs/design/14-query-latency-optimization.md`。

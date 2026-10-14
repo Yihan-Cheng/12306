@@ -1,16 +1,13 @@
 """长三角 12306 本地演示服务。仅使用 Python 标准库，文件编码 UTF-8。"""
 
-import csv
 import hashlib
 import hmac
-import io
 import json
 import mimetypes
 import os
 import random
 import re
 import socket
-import subprocess
 import sys
 import threading
 import time
@@ -23,17 +20,13 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
+from db import DatabaseError, mysql_rows, neo4j_rows
 from live_inventory import inventory_snapshot
 
 
 ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
-MYSQL_DATABASE = os.environ.get("CR12306_DB", "CR12306")
 SERVER_PORT = int(os.environ.get("CR12306_PORT", "8080"))
-MYSQL_CONTAINER = os.environ.get("CR12306_MYSQL_CONTAINER", "mysql84")
-MYSQL_PASSWORD = os.environ.get("CR12306_MYSQL_PASSWORD", "123456")
-NEO4J_CONTAINER = os.environ.get("CR12306_NEO4J_CONTAINER", "neo4j-12306")
-NEO4J_PASSWORD = os.environ.get("CR12306_NEO4J_PASSWORD", "12345678")
 ADMIN_USERNAME = os.environ.get("CR12306_ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("CR12306_ADMIN_PASSWORD", "RailFlow@123")
 ADMIN_SESSION_HOURS = int(os.environ.get("CR12306_ADMIN_SESSION_HOURS", "8"))
@@ -41,14 +34,6 @@ BOOKING_WORKERS = max(1, min(8, int(os.environ.get("CR12306_BOOKING_WORKERS", "2
 REDIS_ENABLED = os.environ.get("CR12306_REDIS_ENABLED", "1").lower() not in {"0", "false", "off"}
 REDIS_HOST = os.environ.get("CR12306_REDIS_HOST", "127.0.0.1")
 REDIS_PORT = int(os.environ.get("CR12306_REDIS_PORT", "6379"))
-MYSQL_BASE = [
-    "docker", "exec", MYSQL_CONTAINER, "mysql", "--default-character-set=utf8mb4",
-    "-uroot", f"-p{MYSQL_PASSWORD}", "-D", MYSQL_DATABASE, "--batch", "--raw",
-]
-NEO4J_BASE = [
-    "docker", "exec", NEO4J_CONTAINER, "cypher-shell",
-    "-u", "neo4j", "-p", NEO4J_PASSWORD, "--format", "plain",
-]
 POSITION_CODES = {"A", "B", "C", "D", "F"}
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 AI_JOBS: Dict[str, Dict[str, Any]] = {}
@@ -63,39 +48,34 @@ class ApiError(Exception):
         self.status = status
 
 
+# City-level search touches train_run_seat (~440k rows) and costs ~650 ms in
+# MySQL. It is polled every few seconds per user, so identical repeated
+# searches within a short window are served from memory instead of re-querying.
+SEARCH_CACHE: Dict[str, Any] = {}
+SEARCH_CACHE_LOCK = threading.Lock()
+SEARCH_CACHE_TTL = max(0.0, float(os.environ.get("CR12306_SEARCH_CACHE_TTL", "4")))
+
+
+def cached_search(key: str, builder: Any) -> Any:
+    if SEARCH_CACHE_TTL <= 0:
+        return builder()
+    now = time.monotonic()
+    with SEARCH_CACHE_LOCK:
+        hit = SEARCH_CACHE.get(key)
+        if hit and hit[0] > now:
+            return hit[1]
+    value = builder()
+    with SEARCH_CACHE_LOCK:
+        SEARCH_CACHE[key] = (now + SEARCH_CACHE_TTL, value)
+        if len(SEARCH_CACHE) > 256:
+            for stale in [k for k, (expires, _) in SEARCH_CACHE.items() if expires <= now]:
+                SEARCH_CACHE.pop(stale, None)
+    return value
+
+
 def sql_text(value: str) -> str:
     """用 UTF-8 十六进制字面量传值，避免引号注入和终端编码变化。"""
     return f"CONVERT(0x{value.encode('utf-8').hex()} USING utf8mb4)"
-
-
-def run_process(command: List[str], timeout: int = 30) -> str:
-    completed = subprocess.run(
-        command, capture_output=True, text=True, encoding="utf-8",
-        errors="replace", timeout=timeout, check=False,
-    )
-    if completed.returncode != 0:
-        detail = completed.stderr.strip() or completed.stdout.strip()
-        match = re.search(r"ERROR \d+ \([^)]*\).*?: (.+)", detail)
-        raise ApiError(match.group(1) if match else detail or "数据库命令失败", 409)
-    return completed.stdout
-
-
-def mysql_rows(sql: str, timeout: int = 30) -> List[Dict[str, Any]]:
-    output = run_process(MYSQL_BASE + ["-e", sql], timeout)
-    if not output.strip():
-        return []
-    reader = csv.DictReader(io.StringIO(output), delimiter="\t")
-    return [{key: (None if value == "NULL" else value) for key, value in row.items()}
-            for row in reader]
-
-
-def neo4j_rows(cypher: str, timeout: int = 30) -> List[Dict[str, Any]]:
-    output = run_process(NEO4J_BASE + [cypher], timeout)
-    if not output.strip():
-        return []
-    # cypher-shell plain 格式在逗号后保留一个空格；跳过该空格，
-    # 否则 JSON 候选会产生 " secondRunId" 这类错误字段名。
-    return list(csv.DictReader(io.StringIO(output), skipinitialspace=True))
 
 
 def redis_command(*parts: Any, timeout: float = 0.8) -> Any:
@@ -263,7 +243,7 @@ def direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     origin = integer(params.get("from", [None])[0], "from")
     destination = integer(params.get("to", [None])[0], "to")
     passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
-    service_date = params.get("date", ["2026-10-07"])[0]
+    service_date = params.get("date", ["2026-10-14"])[0]
     if not DATE_RE.match(service_date):
         raise ApiError("date 格式必须为 YYYY-MM-DD")
     preferred = position(params.get("position", [None])[0])
@@ -288,7 +268,7 @@ def scoped_direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     from_station = integer(from_station_raw, "fromStation") if from_station_raw else None
     to_station = integer(to_station_raw, "toStation") if to_station_raw else None
     passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
-    service_date = params.get("date", ["2026-10-07"])[0]
+    service_date = params.get("date", ["2026-10-14"])[0]
     if not DATE_RE.match(service_date):
         raise ApiError("date 格式必须为 YYYY-MM-DD")
     if from_city == to_city and from_station is None and to_station is None:
@@ -357,7 +337,7 @@ def transfer_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     origin = integer(params.get("from", [None])[0], "from")
     destination = integer(params.get("to", [None])[0], "to")
     passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
-    service_date = params.get("date", ["2026-10-07"])[0]
+    service_date = params.get("date", ["2026-10-14"])[0]
     if not DATE_RE.match(service_date):
         raise ApiError("date 格式必须为 YYYY-MM-DD")
     preferred = position(params.get("position", [None])[0])
@@ -676,6 +656,8 @@ def start_booking_workers() -> None:
 
 class Handler(SimpleHTTPRequestHandler):
     server_version = "CR12306Demo/1.0"
+    protocol_version = "HTTP/1.1"
+    timeout = 30
 
     def send_json(self, payload: Any, status: int = 200,
                   headers: Optional[Dict[str, str]] = None) -> None:
@@ -686,8 +668,12 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         for name, value in (headers or {}).items():
             self.send_header(name, value)
-        self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.end_headers()
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            # The browser aborted a slow/polling request; nothing left to send.
+            self.close_connection = True
 
     def handle_api(self, method: str) -> None:
         parsed = urlparse(self.path)
@@ -751,11 +737,11 @@ class Handler(SimpleHTTPRequestHandler):
                 f"WHERE v.run_id={run_id} ORDER BY v.station_order;"
             ))
         elif method == "GET" and parsed.path == "/api/search/direct":
-            self.send_json(direct_search(params))
+            self.send_json(cached_search(self.path, lambda: direct_search(params)))
         elif method == "GET" and parsed.path == "/api/search/scoped-direct":
-            self.send_json(scoped_direct_search(params))
+            self.send_json(cached_search(self.path, lambda: scoped_direct_search(params)))
         elif method == "GET" and parsed.path == "/api/search/transfer":
-            self.send_json(transfer_search(params))
+            self.send_json(cached_search(self.path, lambda: transfer_search(params)))
         elif method == "GET" and parsed.path == "/api/availability":
             run_id = integer(params.get("runId", [None])[0], "runId")
             from_order = integer(params.get("fromOrder", [None])[0], "fromOrder", 1, 64)
@@ -1044,15 +1030,23 @@ class Handler(SimpleHTTPRequestHandler):
                 "GROUP BY order_status ORDER BY count DESC;"
             )
             top_trains = mysql_rows(
-                "SELECT tr.run_id,tr.train_no,"
-                "(SELECT s.station_name FROM v_train_run_stop v JOIN station s ON s.station_id=v.station_id "
-                " WHERE v.run_id=tr.run_id ORDER BY v.station_order LIMIT 1) AS origin_name,"
-                "(SELECT s.station_name FROM v_train_run_stop v JOIN station s ON s.station_id=v.station_id "
-                " WHERE v.run_id=tr.run_id ORDER BY v.station_order DESC LIMIT 1) AS destination_name,"
-                "COUNT(trs.seat_id) AS total_seats,SUM(trs.occupied_mask<>0) AS occupied_seats,"
-                "ROUND(100*SUM(trs.occupied_mask<>0)/NULLIF(COUNT(trs.seat_id),0),1) AS occupancy_rate "
-                "FROM train_run tr JOIN train_run_seat trs ON trs.run_id=tr.run_id "
-                "GROUP BY tr.run_id,tr.train_no ORDER BY occupancy_rate DESC,total_seats DESC LIMIT 5;"
+                "SELECT agg.run_id,tr.train_no,"
+                "s1.station_name AS origin_name,s2.station_name AS destination_name,"
+                "agg.total_seats,agg.occupied_seats,agg.occupancy_rate "
+                "FROM ("
+                "SELECT run_id,COUNT(*) AS total_seats,"
+                "SUM(occupied_mask<>0) AS occupied_seats,"
+                "ROUND(100*SUM(occupied_mask<>0)/NULLIF(COUNT(*),0),1) AS occupancy_rate "
+                "FROM train_run_seat GROUP BY run_id"
+                ") agg "
+                "JOIN train_run tr ON tr.run_id=agg.run_id "
+                "JOIN (SELECT train_no,MIN(station_order) AS min_order,MAX(station_order) AS max_order "
+                "      FROM train_station GROUP BY train_no) t ON t.train_no=tr.train_no "
+                "JOIN train_station fs ON fs.train_no=tr.train_no AND fs.station_order=t.min_order "
+                "JOIN station s1 ON s1.station_id=fs.station_id "
+                "JOIN train_station ts ON ts.train_no=tr.train_no AND ts.station_order=t.max_order "
+                "JOIN station s2 ON s2.station_id=ts.station_id "
+                "ORDER BY agg.occupancy_rate DESC,agg.total_seats DESC LIMIT 5;"
             )
             pulse = mysql_rows(
                 "SELECT bucket,SUM(order_count) AS orders,SUM(inventory_count) AS inventory FROM ("
@@ -1073,7 +1067,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"metrics": metrics, "order_statuses": order_statuses,
                             "top_trains": top_trains, "pulse": pulse, "activity": activity})
         elif method == "GET" and parsed.path == "/api/admin/trains":
-            service_date = params.get("date", ["2026-10-07"])[0]
+            service_date = params.get("date", ["2026-10-14"])[0]
             if not DATE_RE.match(service_date):
                 raise ApiError("date 格式必须为 YYYY-MM-DD")
             query = str(params.get("q", [""])[0]).strip()[:20]
@@ -1388,6 +1382,10 @@ class Handler(SimpleHTTPRequestHandler):
                 self.handle_api("GET")
             except ApiError as exc:
                 self.send_json({"error": str(exc)}, exc.status)
+            except DatabaseError as exc:
+                self.send_json({"error": str(exc)}, exc.status)
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                self.close_connection = True
             except Exception as exc:
                 self.send_json({"error": f"服务器错误：{exc}"}, 500)
             return
@@ -1418,27 +1416,71 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         data = target.read_bytes()
+        content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
         self.send_response(200)
-        self.send_header("Content-Type", mimetypes.guess_type(target.name)[0] or "application/octet-stream")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
+        if target.suffix.lower() in {".css", ".js", ".png", ".jpg", ".jpeg",
+                                     ".webp", ".svg", ".ico", ".woff", ".woff2"}:
+            self.send_header("Cache-Control", "public, max-age=300")
+        else:
+            self.send_header("Cache-Control", "no-cache")
+        try:
+            self.end_headers()
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            self.close_connection = True
 
     def do_POST(self) -> None:
         try:
             self.handle_api("POST")
         except ApiError as exc:
             self.send_json({"error": str(exc)}, exc.status)
+        except DatabaseError as exc:
+            self.send_json({"error": str(exc)}, exc.status)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            self.close_connection = True
         except Exception as exc:
             self.send_json({"error": f"服务器错误：{exc}"}, 500)
 
-    def log_message(self, fmt: str, *args: Any) -> None:
-        sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), fmt % args))
+    def log_message(self, format: str, *args: Any) -> None:
+        sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), format % args))
+
+
+class BoundedThreadingHTTPServer(ThreadingHTTPServer):
+    """Threading server with a hard worker cap.
+
+    Every request used to spawn an unbounded thread; under a traffic spike the
+    blocked requests piled into thousands of threads. A semaphore keeps the
+    concurrency bounded so the server degrades by queuing instead of thrashing.
+    """
+
+    daemon_threads = True
+    request_queue_size = 128
+
+    def __init__(self, *args: Any, max_workers: int = 64, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._worker_slots = threading.BoundedSemaphore(max_workers)
+
+    def process_request(self, request: Any, client_address: Any) -> None:
+        self._worker_slots.acquire()
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._worker_slots.release()
+            raise
+
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._worker_slots.release()
 
 
 if __name__ == "__main__":
     address = ("127.0.0.1", SERVER_PORT)
+    max_workers = max(8, min(256, int(os.environ.get("CR12306_MAX_THREADS", "64"))))
     print(f"长三角 12306 演示服务：http://{address[0]}:{address[1]}")
     start_booking_workers()
     threading.Thread(target=waitlist_worker_loop, name="waitlist-worker", daemon=True).start()
-    ThreadingHTTPServer(address, Handler).serve_forever()
+    BoundedThreadingHTTPServer(address, Handler, max_workers=max_workers).serve_forever()

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$Port = 8080,
     [switch]$NoRedis,
     [switch]$SkipGraphSync,
@@ -69,11 +69,74 @@ function Invoke-MySql([string]$Sql, [switch]$Scalar) {
     return ($result | Out-String).Trim()
 }
 
+function Invoke-MySqlFile([string]$Path) {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = 'docker'
+    $psi.Arguments = 'exec -i -e MYSQL_PWD=123456 mysql84 mysql --default-character-set=utf8mb4 -uroot CR12306'
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardError = $true
+    $psi.RedirectStandardOutput = $true
+    $proc = [System.Diagnostics.Process]::Start($psi)
+    try {
+        # Drain both output streams before writing to prevent pipe deadlocks.
+        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+        $stderrTask = $proc.StandardError.ReadToEndAsync()
+        $bytes = [IO.File]::ReadAllBytes($Path)
+        $proc.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+        $proc.StandardInput.Close()
+        $proc.WaitForExit()
+        $stdout = $stdoutTask.GetAwaiter().GetResult()
+        $stderr = $stderrTask.GetAwaiter().GetResult()
+        if ($stdout.Trim()) { Write-Host $stdout -ForegroundColor DarkGray }
+        if ($stderr.Trim()) { Write-Host $stderr -ForegroundColor DarkYellow }
+        if ($proc.ExitCode) { throw "MySQL file execution failed: $Path" }
+    } finally {
+        $proc.Dispose()
+    }
+}
+
 function Apply-Migration([string]$Path) {
     Write-Host "    Applying $(Split-Path -Leaf $Path)" -ForegroundColor DarkCyan
-    Get-Content -LiteralPath $Path -Raw -Encoding UTF8 |
-        & docker exec -i -e MYSQL_PWD=123456 mysql84 mysql --default-character-set=utf8mb4 -uroot CR12306
-    if ($LASTEXITCODE) { throw "Migration failed: $Path" }
+    # Preserve Chinese SQL literals on Windows PowerShell by sending UTF-8 bytes.
+    Invoke-MySqlFile $Path
+}
+
+function Repair-MissingRoutines([switch]$CoreOnly) {
+    # Extract only persistent routine definitions; never replay data generation.
+    $definitions = [ordered]@{}
+    $versions = @('V004', 'V005', 'V006', 'V009', 'V010', 'V011', 'V012')
+    if (-not $CoreOnly) { $versions += 'V013' }
+    foreach ($version in $versions) {
+        $files = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot 'database\migrations') -Filter "${version}__*.sql")
+        if ($files.Count -ne 1) { throw "Expected one migration for $version." }
+        $sql = [IO.File]::ReadAllText($files[0].FullName, [Text.Encoding]::UTF8)
+        $matches = [regex]::Matches($sql, '(?ms)^CREATE (?:FUNCTION|PROCEDURE) (\w+)\(.*?^END\$\$')
+        if ($matches.Count -eq 0) { throw "No routine definitions found in $version." }
+        foreach ($match in $matches) { $definitions[$match.Groups[1].Value] = $match.Value }
+    }
+    $existing = Invoke-MySql "SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='CR12306';" -Scalar
+    $existingNames = @($existing -split '\r?\n' | ForEach-Object { $_.Trim() })
+    $missing = @($definitions.Keys | Where-Object { $_ -notin $existingNames })
+    if ($missing.Count -eq 0) {
+        Write-Host '    Application routines are complete.' -ForegroundColor Green
+        return
+    }
+    Write-Host "    Repairing missing routines: $($missing -join ', ')" -ForegroundColor Yellow
+    $repairSql = 'SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci;' + "`nUSE CR12306;`n" + 'DELIMITER $$' + "`n"
+    foreach ($name in $missing) { $repairSql += $definitions[$name] + "`n" }
+    $repairSql += "DELIMITER ;`n"
+    $repairPath = [IO.Path]::GetTempFileName()
+    try {
+        [IO.File]::WriteAllText($repairPath, $repairSql, [Text.UTF8Encoding]::new($false))
+        Invoke-MySqlFile $repairPath
+        $repaired = Invoke-MySql "SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA='CR12306';" -Scalar
+        $repairedNames = @($repaired -split '\r?\n' | ForEach-Object { $_.Trim() })
+        $remaining = @($missing | Where-Object { $_ -notin $repairedNames })
+        if ($remaining.Count) { throw "Routine repair incomplete: $($remaining -join ', ')" }
+    } finally {
+        [IO.File]::Delete($repairPath)
+    }
 }
 
 Write-Step 'Checking Docker Desktop'
@@ -129,6 +192,8 @@ if ($hasTicketingSchema -eq '0') {
         Sort-Object Name | ForEach-Object { Apply-Migration $_.FullName }
     $databaseChanged = $true
 } else {
+    # Later migrations can call these routines when upgrading a restored dump.
+    Repair-MissingRoutines -CoreOnly
     $hasV013 = Invoke-MySql "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='CR12306' AND table_name='booking_request_buffer';" -Scalar
     if ($hasV013 -eq '0') {
         Apply-Migration (Join-Path $repoRoot 'database\migrations\V013__admin_auth_and_booking_buffer.sql')
@@ -149,7 +214,7 @@ if ($hasTicketingSchema -eq '0') {
     } else {
         Write-Host '    Database already contains V015 (G8359).' -ForegroundColor Green
     }
-    $hasV016 = Invoke-MySql "SELECT COUNT(*) FROM (SELECT COUNT(DISTINCT service_date) date_count,MIN(service_date) service_date,COUNT(*) run_count,SUM(train_no='G8359') g8359_count FROM train_run) x WHERE x.date_count=1 AND x.service_date='2026-10-07' AND x.run_count>0 AND x.g8359_count=1;" -Scalar
+    $hasV016 = Invoke-MySql "SELECT COUNT(*) FROM (SELECT COUNT(DISTINCT service_date) date_count,MIN(service_date) service_date,COUNT(*) run_count,SUM(train_no='G8359') g8359_count FROM train_run) x WHERE x.date_count=1 AND x.service_date IN ('2026-10-07','2026-10-14') AND x.run_count>0 AND x.g8359_count=1;" -Scalar
     if ($hasV016 -eq '0') {
         Apply-Migration (Join-Path $repoRoot 'database\migrations\V016__unify_demo_service_date.sql')
         $databaseChanged = $true
@@ -169,6 +234,16 @@ if ($hasTicketingSchema -eq '0') {
         Write-Host '    Database already contains V018 (fast order detail view).' -ForegroundColor Green
     }
 }
+
+$hasV019 = Invoke-MySql "SELECT COUNT(*) FROM (SELECT COUNT(*) run_count,SUM(service_date<>'2026-10-14' OR run_status<>'ON_SALE' OR sale_start_at<>'2026-09-29 00:00:00' OR sale_end_at<>'2026-10-16 00:00:00') outdated_count FROM train_run) x WHERE x.run_count>0 AND x.outdated_count=0;" -Scalar
+if ($hasV019 -eq '0') {
+    Apply-Migration (Join-Path $repoRoot 'database\migrations\V019__move_demo_service_date_to_oct14.sql')
+    $databaseChanged = $true
+} else {
+    Write-Host '    Database already contains V019 (October 14 demo date).' -ForegroundColor Green
+}
+
+Repair-MissingRoutines
 
 if (-not $SkipGraphSync) {
     Write-Step 'Checking Neo4j query graph'
@@ -210,9 +285,8 @@ Write-Host "    Using: $pythonExe" -ForegroundColor Green
 $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($listener) {
     try {
-        # This endpoint checks three databases. Docker Desktop can need a few
-        # seconds to answer immediately after Windows resumes from sleep.
-        $healthCode = (& curl.exe -s -o NUL -w '%{http_code}' --max-time 10 "http://127.0.0.1:$Port/api/health" | Out-String).Trim()
+        # Database probes can be slow after resume; bypass the local HTTP proxy.
+        $healthCode = (& curl.exe -s --noproxy '*' -o NUL -w '%{http_code}' --max-time 30 "http://127.0.0.1:$Port/api/health" | Out-String).Trim()
         if ($healthCode -eq '200') {
             Write-Host "`nCR12306 is already running: http://127.0.0.1:$Port/" -ForegroundColor Green
             exit 0
