@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">课堂并发优化前后架构</title>
+  <desc id="desc">优化前每次查询启动 Docker 与客户端进程；优化后使用持久连接、搜索缓存和有界线程。MySQL 仍负责库存事务。</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#52647a" stroke-width="1.5"/></marker></defs>
+  <rect width="1200" height="760" rx="20" fill="#f4f7fb"/>
+  <g font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" fill="#20334d">
+    <text x="40" y="52" font-size="28" font-weight="700">从“每次启动客户端”到“复用数据库连接”</text>
+    <text x="40" y="85" font-size="17" fill="#52647a">a1eb2c1 · Windows / Docker Desktop · 架构示意，非运行截图</text>
+    <rect x="30" y="110" width="1140" height="215" rx="16" fill="#fff0ed" stroke="#ebc4bb"/>
+    <text x="52" y="147" font-size="22" font-weight="700" fill="#a34a38">优化前：固定开销被轮询与多用户放大</text>
+    <g fill="#ffffff" stroke="#e1b4a9">
+      <rect x="55" y="176" width="215" height="80" rx="10"/><rect x="320" y="176" width="220" height="80" rx="10"/>
+      <rect x="590" y="176" width="250" height="80" rx="10"/><rect x="890" y="176" width="250" height="80" rx="10"/>
+    </g>
+    <g text-anchor="middle" font-size="19">
+      <text x="162" y="208">约 30 名课堂用户</text><text x="162" y="237" font-size="16">多类接口高频轮询</text>
+      <text x="430" y="208">Python HTTP 服务</text><text x="430" y="237" font-size="16">未限制工作线程上限</text>
+      <text x="715" y="208">每次 docker exec</text><text x="715" y="237" font-size="16">启动 mysql / cypher-shell</text>
+      <text x="1015" y="208">容器中的数据库</text><text x="1015" y="237" font-size="16">连接与执行，然后退出</text>
+    </g>
+    <g stroke="#52647a" stroke-width="2" marker-end="url(#arrow)"><path d="M272 216H310"/><path d="M542 216H580"/><path d="M842 216H880"/></g>
+    <text x="55" y="294" font-size="17" fill="#a34a38">请求堆积 → 响应变慢 → 客户端取消 / 断连；取消日志是线索，不能单凭日志判断网络根因。</text>
+    <rect x="30" y="345" width="1140" height="320" rx="16" fill="#eaf6f1" stroke="#afd6c8"/>
+    <text x="52" y="382" font-size="22" font-weight="700" fill="#216c56">优化后：减少请求、复用连接、约束资源</text>
+    <g fill="#ffffff" stroke="#a5cdbc">
+      <rect x="55" y="410" width="215" height="100" rx="10"/><rect x="320" y="410" width="220" height="100" rx="10"/>
+      <rect x="590" y="410" width="250" height="100" rx="10"/><rect x="890" y="410" width="250" height="100" rx="10"/>
+      <rect x="590" y="548" width="250" height="75" rx="10"/><rect x="890" y="548" width="250" height="75" rx="10"/>
+    </g>
+    <g text-anchor="middle" font-size="19">
+      <text x="162" y="443">浏览器</text><text x="162" y="472" font-size="16">指定轮询降频 / 隐藏暂停</text><text x="162" y="496" font-size="16">静态缓存 300 s</text>
+      <text x="430" y="443">Python HTTP 服务</text><text x="430" y="472" font-size="16">HTTP/1.1 · 默认 64 线程</text><text x="430" y="496" font-size="16">搜索对象缓存 · TTL 4 s</text>
+      <text x="715" y="443">PyMySQL 连接池</text><text x="715" y="472" font-size="16">默认最多 16 个连接</text><text x="715" y="496" font-size="16">同一次调用复用同一会话</text>
+      <text x="1015" y="443">MySQL 8.4</text><text x="1015" y="472" font-size="16">宿主 3307 → 容器 3306</text><text x="1015" y="496" font-size="16">缓冲池配置 512 MB</text>
+      <text x="715" y="578">Neo4j 官方驱动</text><text x="715" y="605" font-size="16">共享 Driver / 复用连接</text>
+      <text x="1015" y="578">Neo4j · Bolt 7687</text><text x="1015" y="605" font-size="16">发现换乘候选路径</text>
+    </g>
+    <g stroke="#52647a" stroke-width="2" fill="none" marker-end="url(#arrow)"><path d="M272 460H310"/><path d="M542 460H580"/><path d="M842 460H880"/><path d="M550 470V586H580"/><path d="M842 586H880"/></g>
+    <text x="40" y="706" font-size="18" font-weight="700">一致性边界：搜索缓存只提供快照；下单、支付、退票和候补兑现仍以 MySQL 事务为准。</text>
+    <text x="40" y="738" font-size="16" fill="#52647a">实现限制：冷请求未合并；连接池复用前未逐次 ping；默认参数可由环境变量覆盖。</text>
+  </g>
+</svg>

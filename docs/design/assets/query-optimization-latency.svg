@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-labelledby="title desc">
+  <title id="title">历史查询耗时对比</title>
+  <desc id="desc">MySQL简单查询由170毫秒降至约1毫秒；Neo4j简单查询由区间中点3600毫秒降至约100毫秒；优化后搜索首次1300毫秒与缓存命中300毫秒。面板刻度独立。</desc>
+  <rect width="1200" height="820" rx="20" fill="#f4f7fb"/>
+  <g font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" fill="#20334d">
+    <text x="40" y="52" font-size="28" font-weight="700">历史耗时记录：访问链路与缓存分别观察</text>
+    <text x="40" y="85" font-size="17" fill="#52647a">数据来源：原优化记录 / DeepSeek 总结 · 近似值 · 非 2026-11-07 重测</text>
+    <g fill="#fff" stroke="#d7e1ec"><rect x="30" y="110" width="1140" height="198" rx="14"/><rect x="30" y="324" width="1140" height="198" rx="14"/><rect x="30" y="538" width="1140" height="198" rx="14"/></g>
+    <text x="52" y="144" font-size="21" font-weight="700">MySQL · SELECT 1 数据访问</text>
+    <text x="1145" y="144" font-size="16" fill="#52647a" text-anchor="end">面板刻度：0–200 ms</text>
+    <text x="52" y="190" font-size="17">旧 exec</text><rect x="240" y="170" width="646" height="28" rx="5" fill="#d98264"/><text x="903" y="191" font-size="19">约 170 ms</text>
+    <text x="52" y="236" font-size="17">连接池</text><rect x="240" y="216" width="3.8" height="28" fill="#2a9276"/><text x="259" y="237" font-size="19">约 1 ms</text>
+    <path d="M240 260H1000" stroke="#c4d1df"/><g font-size="14" fill="#52647a"><text x="240" y="282">0</text><text x="606" y="282">100</text><text x="981" y="282">200</text></g>
+    <text x="52" y="359" font-size="21" font-weight="700">Neo4j · RETURN 1 数据访问</text>
+    <text x="1145" y="359" font-size="16" fill="#52647a" text-anchor="end">面板刻度：0–5,000 ms</text>
+    <text x="52" y="405" font-size="17">旧 cypher-shell</text><rect x="240" y="385" width="547.2" height="28" rx="5" fill="#d98264"/><text x="804" y="406" font-size="19">约 3,600 ms</text>
+    <text x="52" y="451" font-size="17">Bolt 驱动</text><rect x="240" y="431" width="15.2" height="28" rx="3" fill="#2a9276"/><text x="273" y="452" font-size="19">约 100 ms</text>
+    <path d="M240 475H1000" stroke="#c4d1df"/><g font-size="14" fill="#52647a"><text x="240" y="497">0</text><text x="602" y="497">2,500</text><text x="970" y="497">5,000</text></g>
+    <text x="52" y="574" font-size="21" font-weight="700">优化后 scoped-direct · HTTP 搜索响应</text>
+    <text x="1145" y="574" font-size="16" fill="#52647a" text-anchor="end">面板刻度：0–1,500 ms</text>
+    <text x="52" y="620" font-size="17">首次查询</text><rect x="240" y="600" width="658.67" height="28" rx="5" fill="#6a8fbd"/><text x="916" y="621" font-size="19">约 1,300 ms</text>
+    <text x="52" y="666" font-size="17">缓存命中</text><rect x="240" y="646" width="152" height="28" rx="5" fill="#2a9276"/><text x="410" y="667" font-size="19">约 300 ms</text>
+    <path d="M240 690H1000" stroke="#c4d1df"/><g font-size="14" fill="#52647a"><text x="240" y="712">0</text><text x="602" y="712">750</text><text x="975" y="712">1,500</text></g>
+    <text x="40" y="772" font-size="17">MySQL 原范围 134–230 ms；Neo4j 原范围 2.8–4.4 s，图取中点示意。各面板请独立阅读。</text>
+    <text x="40" y="800" font-size="17" fill="#52647a">简单查询不代表全部业务；首次与命中不代表完整旧版与新版对比；未补测全班并发。</text>
+  </g>
+</svg>
