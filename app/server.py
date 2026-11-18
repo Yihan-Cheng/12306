@@ -24,10 +24,12 @@ from db import DatabaseError, mysql_rows, neo4j_rows, report_rows
 from live_inventory import inventory_snapshot
 from travel_assistant import plan_trip
 from ops_qa import operations_answer
+from anomalies import BufferSampler, check_anomalies, demo_anomalies
 
 
 ROOT = Path(__file__).resolve().parent
 WEB_ROOT = ROOT / "web"
+BUFFER_SAMPLER = BufferSampler()
 SERVER_PORT = int(os.environ.get("CR12306_PORT", "8080"))
 ADMIN_USERNAME = os.environ.get("CR12306_ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("CR12306_ADMIN_PASSWORD", "RailFlow@123")
@@ -1042,6 +1044,19 @@ class Handler(SimpleHTTPRequestHandler):
                 f"WHERE wr.wait_request_id={wait_id};"
             )
             self.send_json(detail[-1], HTTPStatus.CREATED)
+        elif method == "POST" and parsed.path == "/api/admin/anomalies/check":
+            body = json_body(self)
+            if not isinstance(body, dict) or not isinstance(body.get("date"), str) or not isinstance(body.get("train"), str):
+                raise ApiError("请输入运营日期和车次")
+            if type(body.get("explain", False)) is not bool:
+                raise ApiError("explain 必须为布尔值")
+            try:
+                report = check_anomalies(body["date"], body["train"], report_rows, BUFFER_SAMPLER, body.get("explain", False))
+            except ValueError as exc:
+                raise ApiError(str(exc))
+            self.send_json(report)
+        elif method == "GET" and parsed.path == "/api/admin/anomalies/demo":
+            self.send_json(demo_anomalies())
         elif method == "POST" and parsed.path == "/api/admin/operations/query":
             body = json_body(self)
             question = body.get("question") if isinstance(body, dict) else None
@@ -1519,5 +1534,6 @@ if __name__ == "__main__":
     max_workers = max(8, min(256, int(os.environ.get("CR12306_MAX_THREADS", "64"))))
     print(f"长三角 12306 演示服务：http://{address[0]}:{address[1]}")
     start_booking_workers()
+    threading.Thread(target=BUFFER_SAMPLER.run, args=(mysql_rows,), name="anomaly-sampler", daemon=True).start()
     threading.Thread(target=waitlist_worker_loop, name="waitlist-worker", daemon=True).start()
     BoundedThreadingHTTPServer(address, Handler, max_workers=max_workers).serve_forever()

@@ -2,12 +2,21 @@
   width: min(1120px, calc(100% - 25px));
   margin: 18px auto 0;
   padding: 24px 31px;
-  background: white;
+  background: linear-gradient(120deg, #f8faff, #fff 50%);
+  border: 1px solid #dce5ed;
   border-radius: 18px;
   box-shadow: 0 12px 35px rgba(37, 66, 37, .08);
   text-align: left;
 }
 .travel-assistant h2 { margin: 0 0 8px; font-size: 22px; }
+.assistant-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.assistant-brand {
+  display: grid; place-items: center; width: 60px; height: 60px; flex: 0 0 60px;
+  border-radius: 16px; background: #edf1ff; border: 1px solid #e0e7ff;
+}
+.assistant-brand img { display: block; object-fit: contain; }
+.assistant-kicker { display: block; color: #5265ad; font-size: 13px; font-weight: 700; letter-spacing: .03em; margin-bottom: 3px; }
+.assistant-heading h2 { margin: 0; line-height: 1.3; }
 .travel-assistant label, .travel-assistant p { color: #465346; font-size: 14px; line-height: 1.6; }
 .assistant-input { display: flex; align-items: stretch; gap: 12px; margin: 8px 0; }
 .assistant-input textarea {

@@ -247,6 +247,7 @@ Repair-MissingRoutines
 
 # Idempotent views and role grants also repair an interrupted V020 installation.
 Apply-Migration (Join-Path $repoRoot 'database\migrations\V020__operations_reporting.sql')
+Apply-Migration (Join-Path $repoRoot 'database\migrations\V021__anomaly_evidence.sql')
 
 if (-not $SkipGraphSync) {
     Write-Step 'Checking Neo4j query graph'

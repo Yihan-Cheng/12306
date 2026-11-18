@@ -15,3 +15,26 @@
 .ops-card summary { cursor: pointer; color: #245373; }
 .ops-card pre { padding: 1rem; background: #f3f6f9; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 .ops-card td, .ops-card th { padding: .65rem; font-size: .9rem; }
+
+/* A shared, restrained accent makes the assistant entries easy to locate. */
+.sidebar nav .ai-nav {
+  background: rgba(128, 143, 231, .08);
+  border: 1px solid rgba(150, 166, 246, .17);
+  color: #d6defd;
+}
+.sidebar nav .ai-nav i { color: #a9b8fa; }
+.sidebar nav .ai-nav:hover { background: rgba(128, 143, 231, .17); }
+.sidebar nav .ai-nav.active {
+  background: linear-gradient(90deg, rgba(113, 133, 233, .3), rgba(113, 133, 233, .12));
+  border-color: rgba(163, 179, 255, .3);
+  box-shadow: inset 3px 0 #a2b1ff;
+}
+.ai-feature-badge {
+  padding: 3px 6px; border: 1px solid rgba(174, 190, 255, .28);
+  border-radius: 5px; background: rgba(141, 161, 249, .12);
+  color: #d3ddff; font-size: 10px; line-height: 1.2; letter-spacing: .04em;
+}
+@media (max-width: 760px) {
+  .sidebar nav .ai-nav { position: relative; }
+  .ai-feature-badge { position: absolute; top: 3px; right: 1px; padding: 1px 2px; font-size: 8px; }
+}

@@ -99,12 +99,14 @@ def query_for(report, train, limit):
     return f"{sql}\n{report.tail}\nLIMIT {limit}"
 
 
-def select_report(question, candidates, known):
+def select_report(question, candidates, known, day):
     key = os.getenv("CR12306_AI_API_KEY")
     mode = "本地 NL2SQL 规则"
     if key:
         catalog = "\n\n".join(f"{REPORTS[k].title}。{REPORTS[k].definition}\n{sql}" for k, sql in candidates.items())
         prompt = ("将运营问题翻译为单条 MySQL SELECT。仅支持以下指标和 SQL 形式。"
+                  f"页面已选择运营日 {day}，问题中明确的日期也已由后端处理。"
+                  "车次和日期均由后端提取并绑定，SQL保持%s占位符，日期已确定，无需追问日期。"
                   "保留 %s 绑定参数、列、分组、排序、LIMIT。不得丢弃条件或回答其他问题。"
                   "若口径不清、包含无法支持的筛选或指标，sql 留空，clarify 给出中文说明。\n" + catalog)
         schema = {"name": "query_operations", "description": "生成只读报表 SQL 或提出澄清",
@@ -138,7 +140,7 @@ def operations_answer(question, service_date, read_rows):
     candidates = {k: query_for(r, train, limit if k == "waiting" else 20)
                   for k, r in REPORTS.items() if not top or k == "waiting"}
     known = next((k for k in candidates if re.fullmatch(REPORTS[k].pattern, text)), None)
-    metric, mode, clarification = select_report(question, candidates, known)
+    metric, mode, clarification = select_report(question, candidates, known, day)
     if not metric:
         return {"clarify": clarification, "mode": mode}
     report = REPORTS[metric]

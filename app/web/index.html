@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/brand.css?v=7">
   <link rel="stylesheet" href="/ticket.css">
-  <link rel="stylesheet" href="/travel-assistant.css">
+  <link rel="stylesheet" href="/travel-assistant.css?v=2">
   <link rel="stylesheet" href="/passenger-type.css?v=1">
 </head>
 <body>
@@ -72,7 +72,10 @@
             </div>
           </section>
           <section class="travel-assistant" aria-labelledby="assistantTitle">
-            <h2 id="assistantTitle">我该怎么买？</h2>
+            <div class="assistant-heading">
+              <span class="assistant-brand"><img src="/deepseek.svg" width="44" height="34" alt="DeepSeek"></span>
+              <div><span class="assistant-kicker">AI 出行助手</span><h2 id="assistantTitle">我该怎么买？</h2></div>
+            </div>
             <form id="assistantForm">
               <label for="travelQuestion">告诉出行助手你的起终点、人数和到达时间</label>
               <div class="assistant-input">

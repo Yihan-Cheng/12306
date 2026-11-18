@@ -97,7 +97,9 @@ class TravelTests(unittest.TestCase):
         intent = travel.local_intent(travel.EXAMPLE, STATIONS)
         tool = {"function": {"name": "plan_trip", "arguments": json.dumps(intent)}}
         data = {"choices": [{"message": {"tool_calls": [tool]}}]}
-        with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only"}), patch.object(
+        with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only",
+                                    "CR12306_AI_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                                    "CR12306_AI_TIMEOUT": "45"}), patch.object(
                 model_api, "urlopen", return_value=io.BytesIO(json.dumps(data).encode())) as post:
             result = self.plan("帮我们俩挑一趟车")
             self.assertEqual(result["mode"], "模型 API")
@@ -105,6 +107,8 @@ class TravelTests(unittest.TestCase):
             request = post.call_args.args[0]
             self.assertEqual(request.get_header("Authorization"), "Bearer test-only")
             self.assertEqual(json.loads(request.data)["tools"][0]["function"]["name"], "plan_trip")
+            self.assertFalse(json.loads(request.data)["enable_thinking"])
+            self.assertEqual(post.call_args.kwargs["timeout"], 45)
 
     def test_model_failure_falls_back(self):
         with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only"}), patch.object(

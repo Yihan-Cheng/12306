@@ -59,6 +59,7 @@ class OperationsQuestions(unittest.TestCase):
         with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only"}), patch.object(ops, "call_tool") as model:
             model.return_value = {"sql": good, "clarify": ""}
             self.assertEqual(self.ask("订单状态分布")["mode"], "模型 NL2SQL")
+            self.assertIn("2026-10-14", model.call_args.args[2])
             model.return_value = {"sql": good + "; SELECT 1", "clarify": ""}
             r = self.ask("订单状态分布")
             self.assertIn("未通过校验", r["mode"])
