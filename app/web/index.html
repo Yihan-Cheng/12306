@@ -6,8 +6,9 @@
   <meta name="theme-color" content="#008c23">
   <title>CR · 中国铁路智慧出行</title>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/brand.css?v=6">
+  <link rel="stylesheet" href="/brand.css?v=7">
   <link rel="stylesheet" href="/ticket.css">
+  <link rel="stylesheet" href="/travel-assistant.css">
 </head>
 <body>
   <section id="authScreen" class="auth-screen">
@@ -36,9 +37,9 @@
       <button class="header-brand" data-home><span>CR</span><div><b>EAST CHINA RAILWAY COMPANY</b></div></button>
       <nav>
         <div class="nav-item"><button id="accountNav">用户登录 <i>⌄</i></button><div class="nav-preview"><strong>当前乘车人</strong><p><b id="navPassengerName">乘车人</b> · 登录状态正常</p></div></div>
-        <div class="nav-item"><button id="bookingNav" class="active" data-home>选择城市与车站 <i>⌄</i></button><div class="nav-preview"><strong>开始一段行程</strong><p>选择出发城市、目的城市或具体车站。</p><span>进入车票查询 →</span></div></div>
-        <div class="nav-item"><button id="routesNav">列车与线路 <i>⌄</i></button><div class="nav-preview"><strong>列车与线路</strong><p>查看已查询车次、完整经停站和实时余票。</p><span>查看查询结果 →</span></div></div>
-        <div class="nav-item"><button id="showOrders">订单 <i>⌄</i></button><div class="nav-preview"><strong>我的车票</strong><p>查看候补状态、电子车票和退票入口。</p><span>进入订单页面 →</span></div></div>
+        <div class="nav-item"><button id="bookingNav" class="active" data-home>选择城市与车站 <i>⌄</i></button><div class="nav-preview"><strong>开始一段行程</strong><p>选择出发城市、目的城市或具体车站。</p><button type="button" data-home>进入车票查询 →</button></div></div>
+        <div class="nav-item"><button id="routesNav">列车与线路 <i>⌄</i></button><div class="nav-preview"><strong>列车与线路</strong><p>查看已查询车次、完整经停站和实时余票。</p><button type="button" id="viewRouteResults">查看查询结果 →</button></div></div>
+        <div class="nav-item"><button id="showOrders">订单 <i>⌄</i></button><div class="nav-preview"><strong>我的车票</strong><p>查看候补状态、电子车票和退票入口。</p><button type="button" id="viewPassengerOrders">进入订单页面 →</button></div></div>
       </nav>
       <button id="mobileOrders" class="mobile-orders-button" type="button" onclick="openOrders()">我的订单</button>
       <div class="user-profile"><span id="profileAvatar">旅</span><div><b id="profileName">乘车人</b><small>已登录</small></div><button id="logout" title="切换用户">退出</button></div>
@@ -69,6 +70,18 @@
               <button id="searchTickets" class="search-button"><span>查询车票</span><b>→</b></button>
             </div>
           </section>
+          <section class="travel-assistant" aria-labelledby="assistantTitle">
+            <h2 id="assistantTitle">我该怎么买？</h2>
+            <form id="assistantForm">
+              <label for="travelQuestion">告诉出行助手你的起终点、人数和到达时间</label>
+              <div class="assistant-input">
+                <textarea id="travelQuestion" rows="2" maxlength="500" required placeholder="两个人从南通西到上海虹桥，下午3点前到，优先直达，可以换乘一次"></textarea>
+                <button id="askAssistant" type="submit">规划行程 →</button>
+              </div>
+              <button id="assistantExample" class="assistant-example" type="button">试用上面的示例</button>
+            </form>
+            <div id="assistantResult" aria-live="polite"></div>
+          </section>
         </div>
       </section>
 
@@ -98,6 +111,7 @@
   <div id="ticketModal" class="modal ticket-modal" aria-hidden="true"><div class="modal-card ticket-modal-card"><button class="modal-close" data-close="ticketModal">×</button><div id="ticketContent" class="ticket-modal-content"></div></div></div>
   <div id="noticeModal" class="modal" aria-hidden="true"><div class="modal-card notice-modal-card"><div class="notice-icon">!</div><h2 id="noticeTitle">座位分配提示</h2><p id="noticeText"></p><button id="noticeOkay" class="primary-button">我知道了</button></div></div>
   <div id="toast" class="toast"></div>
-  <script src="/app.js?v=5"></script>
+  <script src="/app.js?v=6"></script>
+  <script src="/travel-assistant.js?v=2"></script>
 </body>
 </html>

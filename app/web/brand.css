@@ -69,11 +69,13 @@ button:active{transform:translateY(1px)}
   background:rgba(255,255,255,.99);border-top:3px solid #009b27;border-bottom:1px solid #dfe5de;
   box-shadow:0 22px 42px rgba(24,50,25,.12);opacity:0;visibility:hidden;transform:translateY(-7px);transition:.18s;z-index:50;text-align:left
 }
-.nav-item:hover .nav-preview{opacity:1;visibility:visible;transform:none}
+.nav-item:hover .nav-preview,.nav-item:focus-within .nav-preview{opacity:1;visibility:visible;transform:none}
 .nav-preview strong{display:flex;align-items:center;gap:12px;color:#008f24;font-size:22px}
 .nav-preview strong:before{content:"→";width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#009b27;color:#fff;font-size:14px}
 .nav-preview p{max-width:690px;margin:25px 0 15px;padding:14px 0;border-top:1px solid #e1e6e0;border-bottom:1px solid #e1e6e0;color:#464c46;font-size:13px}
-.nav-preview p b{font-size:14px}.nav-preview span{color:#009b27;font-size:11px;font-weight:700}
+.nav-preview p b{font-size:14px}
+.user-header .nav-preview button{min-height:36px;padding:4px 0;color:#008b2b;background:transparent;border:0;font-size:13px;font-weight:700;cursor:pointer}
+.nav-preview button:hover,.nav-preview button:focus-visible{text-decoration:underline}
 
 /* Decorative pattern used in the supplied reference. */
 .auth-landing:after,.welcome-hero:before,.page-results .page-top:before,.orders-page-top:before{

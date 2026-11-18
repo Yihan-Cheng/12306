@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 from db import DatabaseError, mysql_rows, neo4j_rows
 from live_inventory import inventory_snapshot
+from travel_assistant import plan_trip
 
 
 ROOT = Path(__file__).resolve().parent
@@ -257,7 +258,7 @@ def direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     )
 
 
-def scoped_direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
+def scoped_direct_search(params: Dict[str, List[str]], *, all_station_pairs=False) -> List[Dict[str, Any]]:
     """Search a station pair or every valid station pair inside two cities."""
     from_city = str(params.get("fromCity", [""])[0]).strip()
     to_city = str(params.get("toCity", [""])[0]).strip()
@@ -318,6 +319,8 @@ def scoped_direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     )
     # A train may stop at more than one station in a selected city. Keep the
     # preferred, deterministic OD product selected by the ordering above.
+    if all_station_pairs:
+        return rows
     unique: Dict[tuple, Dict[str, Any]] = {}
     for row in rows:
         key = (row["run_id"], row["seat_type_id"])
@@ -333,18 +336,24 @@ def scoped_direct_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     )
 
 
-def transfer_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
-    origin = integer(params.get("from", [None])[0], "from")
-    destination = integer(params.get("to", [None])[0], "to")
+def transfer_search(params: Dict[str, List[str]], *, all_station_pairs=False) -> List[Dict[str, Any]]:
+    origins = params.get("from", [None])
+    destinations = params.get("to", [None])
+    origins = [integer(i, "from") for i in (origins if all_station_pairs else origins[:1])]
+    destinations = [integer(i, "to") for i in (destinations if all_station_pairs else destinations[:1])]
     passengers = integer(params.get("passengers", ["1"])[0], "passengers", 1, 5)
     service_date = params.get("date", ["2026-10-14"])[0]
     if not DATE_RE.match(service_date):
         raise ApiError("date 格式必须为 YYYY-MM-DD")
     preferred = position(params.get("position", [None])[0])
     fallback = boolean(params.get("fallback", ["true"])[0])
+    deadline = params.get("arriveBy", [""])[0]
+    if deadline and not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", deadline):
+        raise ApiError("最晚到达时间格式必须为 HH:MM")
+    arrival_filter = f"AND replace(left(d.arrival_at,16),' ','T') <= '{service_date}T{deadline}'" if deadline else ""
     cypher = f"""
-    MATCH (origin:Station {{station_id:{origin}}}),
-          (destination:Station {{station_id:{destination}}})
+    MATCH (origin:Station), (destination:Station)
+    WHERE origin.station_id IN {origins} AND destination.station_id IN {destinations} AND origin<>destination
     MATCH (first:TrainRun {{service_date:'{service_date}'}})-[a:CALLS_AT]->(origin)
     MATCH (first)-[b:CALLS_AT]->(transfer:Station)
     WHERE b.station_order>a.station_order AND transfer<>origin AND transfer<>destination
@@ -352,24 +361,36 @@ def transfer_search(params: Dict[str, List[str]]) -> List[Dict[str, Any]]:
     MATCH (second)-[d:CALLS_AT]->(destination)
     WHERE second<>first AND d.station_order>c.station_order
       AND b.arrival_at IS NOT NULL AND c.departure_at IS NOT NULL
-      AND c.departure_at>b.arrival_at
-    RETURN DISTINCT first.run_id AS firstRunId,
+      AND c.departure_at>b.arrival_at AND d.arrival_at IS NOT NULL {arrival_filter}
+    WITH origin,destination,first,second,transfer,d,
+         duration.inSeconds(localdatetime(replace(b.arrival_at,' ','T')),localdatetime(replace(c.departure_at,' ','T'))).seconds AS waitSeconds
+    WHERE waitSeconds >= 900 AND waitSeconds <= 14400
+    WITH DISTINCT origin.station_id AS originId, destination.station_id AS destinationId, first.run_id AS firstRunId,
            second.run_id AS secondRunId,
-           transfer.station_id AS transferStationId
+           transfer.station_id AS transferStationId, d.arrival_at AS arrival
+    ORDER BY arrival, firstRunId, secondRunId, transferStationId, originId, destinationId
     LIMIT 80
+    RETURN originId,destinationId,firstRunId,secondRunId,transferStationId
     """
     graph_rows = neo4j_rows(cypher, timeout=20)
-    candidates = [{key: int(value) for key, value in row.items()} for row in graph_rows]
-    if not candidates:
-        return []
-    candidate_json = json.dumps(candidates, separators=(",", ":"))
+    by_pair = {}
+    for row in graph_rows:
+        pair = (int(row["originId"]), int(row["destinationId"]))
+        candidate = {k: int(row[k]) for k in ("firstRunId", "secondRunId", "transferStationId")}
+        by_pair.setdefault(pair, []).append(candidate)
     pos_sql = "NULL" if preferred is None else sql_text(preferred)
-    return mysql_rows(
-        "CALL sp_validate_transfer_candidates("
-        f"{sql_text(candidate_json)},{origin},{destination},'{service_date}',"
-        f"15,240,{passengers},{pos_sql},{1 if fallback else 0});",
-        timeout=20,
-    )
+    results = []
+    for (origin, destination), candidates in by_pair.items():
+        candidate_json = json.dumps(candidates, separators=(",", ":"))
+        rows = mysql_rows(
+            "CALL sp_validate_transfer_candidates("
+            f"{sql_text(candidate_json)},{origin},{destination},'{service_date}',"
+            f"15,240,{passengers},{pos_sql},{1 if fallback else 0});", timeout=20)
+        if all_station_pairs:
+            for row in rows:
+                row.update(origin_id=origin, destination_id=destination)
+        results.extend(rows)
+    return results
 
 
 def public_ai_job(job: Dict[str, Any]) -> Dict[str, Any]:
@@ -722,6 +743,15 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(mysql_rows(
                 "SELECT station_id,station_name,city FROM station ORDER BY city,station_name"
             ))
+        elif method == "POST" and parsed.path == "/api/travel-assistant":
+            body = json_body(self)
+            question = body.get("question") if isinstance(body, dict) else None
+            if not isinstance(question, str) or not 1 <= len(question.strip()) <= 500:
+                raise ApiError("请输入 1 至 500 字的行程需求")
+            locations = mysql_rows("SELECT station_id,station_name,city FROM station ORDER BY city,station_name")
+            self.send_json(plan_trip(question.strip(), locations,
+                                     lambda p: scoped_direct_search(p, all_station_pairs=True),
+                                     lambda p: transfer_search(p, all_station_pairs=True)))
         elif method == "GET" and parsed.path == "/api/locations":
             self.send_json(mysql_rows(
                 "SELECT station_id,station_name,city FROM station ORDER BY city,station_name"
