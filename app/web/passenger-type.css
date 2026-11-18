@@ -1,0 +1,131 @@
+/* Shared reading sizes for passenger screens. */
+:root {
+  --type-caption: .875rem;
+  --type-body: 1rem;
+  --type-section: clamp(1.125rem, 1rem + .3vw, 1.375rem);
+  --secondary-ink: #526257;
+}
+
+.user-header .nav-item > button,
+.auth-site-header nav button,
+.user-header .nav-preview button,
+.auth-capabilities b,
+.card-label span,
+.station-select,
+.search-button,
+.travel-assistant label,
+.travel-assistant p,
+.travel-assistant button,
+.book-main,
+.result-date strong,
+.detail-row,
+.passenger-check b,
+.seat-class span,
+.submit-panel button,
+.primary-button { font-size: var(--type-body); }
+
+.welcome-hero p,
+.auth-capabilities span,
+.user-profile b,
+.user-header .user-profile button,
+.field-label,
+.assistant-meta,
+.result-date button,
+.soft-button,
+.glance-item b,
+.glance-item em,
+.glance-item small,
+.train-line > span,
+.train-line small,
+.price-from small,
+.detail-head,
+.detail-row button,
+.route-button,
+.stock,
+.stop-head,
+.stop-row,
+.modal-title p,
+.empty-state p,
+.empty-state button,
+.empty-orders,
+.orders-page-list .user-order p,
+.orders-page-list .user-order > small,
+.order-actions button,
+.success-actions button,
+.notice-modal-card p,
+.toast { font-size: var(--type-caption); }
+
+.field-label, .auth-capabilities span, .train-line > span, .detail-head { color: var(--secondary-ink); }
+.station-select { min-height: 2.625rem; }
+.user-header nav { gap: clamp(.25rem, 1vw, 1rem); }
+.user-header .nav-item > button { padding-inline: .5rem; white-space: nowrap; }
+.user-profile small, .marker, .user-order em { font-size: .75rem; }
+.station-time > span, .orders-page-list .user-order h3 { font-size: 1.125rem; }
+.train-line > strong, .assistant-option h3 { font-size: var(--type-section); }
+
+/* Booking confirmation: time, fare and section names are the scanning anchors. */
+.page-confirm { max-width: 72rem; }
+.confirm-bar h1 { font-size: clamp(1.5rem, 1.15rem + 1.1vw, 2.125rem); line-height: 1.25; }
+.confirm-bar div > span, .confirm-date, .confirm-section-title > small { font-size: var(--type-caption); }
+.confirm-bar div > span { letter-spacing: .06em; }
+.confirm-date { flex-shrink: 0; }
+.confirm-trip { height: auto; min-height: 8.5rem; }
+.confirm-time b {
+  font-size: clamp(1.875rem, 1.25rem + 1.8vw, 2.75rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.confirm-time span, .passenger-check b { font-size: 1.125rem; }
+.confirm-train strong { font-size: clamp(1.25rem, 1.1rem + .5vw, 1.625rem); }
+.confirm-train > span, .confirm-train small, .seat-class small,
+.passenger-check small, .passenger-check em, .position-seat small,
+.position-legend, .aisle, .fallback-note, .submit-panel span, .submit-panel small {
+  font-size: var(--type-caption);
+  line-height: 1.45;
+}
+.confirm-train > span, .confirm-train small, .passenger-check small, .position-seat small,
+.position-legend, .aisle, .submit-panel span, .submit-panel small { color: var(--secondary-ink); }
+.fallback-note { align-items: baseline; color: #765122; }
+.fallback-note i { align-self: center; }
+.confirm-section-title h2 { font-size: var(--type-section); line-height: 1.35; }
+.confirm-section-title > div > span { font-size: .8125rem; }
+.seat-class-grid { flex-wrap: wrap; }
+.seat-class { height: auto; min-height: 6.25rem; width: 10.25rem; }
+.seat-class b { font-size: 1.375rem; line-height: 1.25; }
+.seat-class small { color: #16723b; }
+.position-seat { width: 4.25rem; height: 4.75rem; padding-inline: 0; white-space: nowrap; }
+.position-seat b { font-size: 1.25rem; margin-top: .55rem; }
+.position-legend { flex-wrap: wrap; row-gap: .25rem; }
+.submit-panel > div { align-items: center; }
+.submit-panel b { font-size: 1rem; }
+.submit-panel b em { font-size: clamp(1.75rem, 1.5rem + .65vw, 2.25rem); }
+.submit-panel button { min-height: 2.875rem; }
+.submit-panel button b { color: inherit; }
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  .user-header .header-brand div { max-width: 11rem; }
+  .user-header nav { margin-left: 0; gap: 0; }
+  .user-header .nav-item { min-width: 0; }
+  .user-header .nav-item > button { padding-inline: .5rem; }
+}
+
+@media (max-width: 620px) {
+  .page-confirm { padding: .875rem .75rem 3rem; }
+  .confirm-bar { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; padding-block: .75rem; }
+  .confirm-bar .back-button { grid-row: span 2; }
+  .confirm-date { grid-column: 2; justify-self: start; padding: .2rem .5rem; }
+  .confirm-trip { grid-template-columns: 1fr auto 1fr; gap: .375rem; min-height: 7rem; padding: .875rem; }
+  .confirm-time.arrival { grid-column: 3; grid-row: 1; }
+  .confirm-train > span { width: auto; }
+  .confirm-train > span i, .confirm-train > span::before, .confirm-train > span::after { display: none; }
+  .seat-class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); }
+  .seat-class { width: 100%; min-width: 0; }
+  .carriage-map { justify-content: center; gap: .25rem; padding: .5rem .25rem; }
+  .seat-side { gap: .2rem; }
+  .position-seat { width: clamp(2.25rem, 9.5vw, 3.5rem); min-width: 0; height: 4.5rem; }
+  .position-seat > i { width: 60%; }
+  .aisle { width: 1.25rem; }
+  .position-legend { column-gap: .75rem; }
+  .submit-panel { position: static; padding: .75rem; gap: .5rem; flex-wrap: wrap; background: #fff; backdrop-filter: none; }
+  .submit-panel button { padding-inline: .875rem; }
+}
