@@ -1,12 +1,11 @@
 """Passenger intent extraction and read-only itinerary planning."""
 
-import json
 import os
 import re
 from datetime import datetime
 from decimal import Decimal
 from urllib.error import URLError
-from urllib.request import Request, urlopen
+from model_api import call_tool
 
 
 DEMO_DATE = "2026-10-14"
@@ -102,7 +101,6 @@ FIELDS = {
 
 
 def model_intent(question, key):
-    base = os.getenv("CR12306_AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
     prompt = (
         f"提取铁路购票条件。默认日期 {DEMO_DATE}、1人、优先直达。保留地名及站/市后缀。"
         "date 为 YYYY-MM-DD。transfer 默认 direct（仅直达）。允许或最多换乘1次用 allowed，"
@@ -116,17 +114,7 @@ def model_intent(question, key):
     schema = {"name": "plan_trip", "description": "解析条件后由服务端查询演示车票",
               "parameters": {"type": "object", "properties": FIELDS,
                              "required": list(FIELDS), "additionalProperties": False}}
-    payload = {"model": os.getenv("CR12306_AI_MODEL", "gpt-4o-mini"),
-               "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": question}],
-               "tools": [{"type": "function", "function": schema}],
-               "tool_choice": {"type": "function", "function": {"name": "plan_trip"}}}
-    request = Request(base + "/chat/completions", data=json.dumps(payload).encode(),
-                      headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
-    with urlopen(request, timeout=15) as response:
-        call = json.load(response)["choices"][0]["message"]["tool_calls"][0]["function"]
-    if call["name"] != "plan_trip":
-        raise ValueError("unexpected tool")
-    return json.loads(call["arguments"])
+    return call_tool(question, key, prompt, schema)
 
 
 def resolve(name, locations):

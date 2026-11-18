@@ -245,6 +245,9 @@ if ($hasV019 -eq '0') {
 
 Repair-MissingRoutines
 
+# Idempotent views and role grants also repair an interrupted V020 installation.
+Apply-Migration (Join-Path $repoRoot 'database\migrations\V020__operations_reporting.sql')
+
 if (-not $SkipGraphSync) {
     Write-Step 'Checking Neo4j query graph'
     $graphCount = (& docker exec neo4j-12306 cypher-shell -u neo4j -p 12345678 --format plain `
@@ -307,6 +310,20 @@ $env:CR12306_BOOKING_WORKERS = [string]([Math]::Max(1, [Math]::Min(8, $BookingWo
 if ($AdminPassword) { $env:CR12306_ADMIN_PASSWORD = $AdminPassword }
 $env:PYTHONUTF8 = '1'
 $env:PYTHONUNBUFFERED = '1'
+
+# Each running web port uses a separate reader. Its generated password lives
+# only in the server environment. Deployments may supply a pre-provisioned pair.
+if (-not $env:CR12306_OPS_DB_USER -and -not $env:CR12306_OPS_DB_PASSWORD) {
+    $reader = "railflow_ops_$Port"
+    $secret = [guid]::NewGuid().ToString('N')
+    try {
+        Invoke-MySql "CREATE USER IF NOT EXISTS '$reader'@'%' IDENTIFIED BY '$secret'; ALTER USER '$reader'@'%' IDENTIFIED BY '$secret'; GRANT 'railflow_ops_reports' TO '$reader'@'%'; SET DEFAULT ROLE 'railflow_ops_reports' TO '$reader'@'%';" | Out-Null
+    } catch { throw 'Failed to provision the read-only operations user.' }
+    $env:CR12306_OPS_DB_USER = $reader
+    $env:CR12306_OPS_DB_PASSWORD = $secret
+} elseif (-not $env:CR12306_OPS_DB_USER -or -not $env:CR12306_OPS_DB_PASSWORD) {
+    throw 'Set both CR12306_OPS_DB_USER and CR12306_OPS_DB_PASSWORD.'
+}
 
 Write-Host "`nUser site:  http://127.0.0.1:$Port/" -ForegroundColor Green
 Write-Host "Admin site: http://127.0.0.1:$Port/admin-login.html" -ForegroundColor Green

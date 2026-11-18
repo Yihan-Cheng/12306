@@ -256,6 +256,27 @@ def mysql_rows(sql: str, timeout: int = 30) -> List[Dict[str, Any]]:
     return _pool_mysql_rows(sql)
 
 
+def report_rows(sql, params):
+    """Run an approved report on a separate, view-only connection."""
+    user = os.getenv("CR12306_OPS_DB_USER")
+    password = os.getenv("CR12306_OPS_DB_PASSWORD")
+    if not user or not password:
+        raise DatabaseError("运营问答只读账号尚未配置，请使用 start.ps1 启动服务。", 503)
+    try:
+        with pymysql.connect(host=MYSQL_HOST, port=MYSQL_PORT, user=user, password=password,
+                             database=MYSQL_DATABASE, charset="utf8mb4", cursorclass=DictCursor,
+                             connect_timeout=4, read_timeout=7, write_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SET SESSION max_execution_time=4000")
+                cur.execute("START TRANSACTION READ ONLY")
+                cur.execute(sql, params)
+                rows = [{k: _normalize(v) for k, v in r.items()} for r in cur.fetchall()]
+                conn.rollback()
+                return rows
+    except pymysql.MySQLError as exc:
+        raise DatabaseError("运营查询未完成，请检查只读视图、数据库连接或缩小查询范围。", 503) from exc
+
+
 def neo4j_rows(cypher: str, timeout: int = 30) -> List[Dict[str, Any]]:
     if BACKEND == "exec":
         return _exec_neo4j_rows(cypher, timeout)

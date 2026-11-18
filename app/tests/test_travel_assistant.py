@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import travel_assistant as travel
+import model_api
 
 
 STATIONS = [
@@ -97,7 +98,7 @@ class TravelTests(unittest.TestCase):
         tool = {"function": {"name": "plan_trip", "arguments": json.dumps(intent)}}
         data = {"choices": [{"message": {"tool_calls": [tool]}}]}
         with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only"}), patch.object(
-                travel, "urlopen", return_value=io.BytesIO(json.dumps(data).encode())) as post:
+                model_api, "urlopen", return_value=io.BytesIO(json.dumps(data).encode())) as post:
             result = self.plan("帮我们俩挑一趟车")
             self.assertEqual(result["mode"], "模型 API")
             self.assertEqual(result["people"], 2)
@@ -107,7 +108,7 @@ class TravelTests(unittest.TestCase):
 
     def test_model_failure_falls_back(self):
         with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only"}), patch.object(
-                travel, "urlopen", side_effect=TimeoutError):
+                model_api, "urlopen", side_effect=TimeoutError):
             result = self.plan()
             self.assertIn("暂不可用", result["mode"])
             self.assertEqual(len(result["options"]), 1)

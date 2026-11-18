@@ -20,9 +20,10 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
-from db import DatabaseError, mysql_rows, neo4j_rows
+from db import DatabaseError, mysql_rows, neo4j_rows, report_rows
 from live_inventory import inventory_snapshot
 from travel_assistant import plan_trip
+from ops_qa import operations_answer
 
 
 ROOT = Path(__file__).resolve().parent
@@ -1041,6 +1042,12 @@ class Handler(SimpleHTTPRequestHandler):
                 f"WHERE wr.wait_request_id={wait_id};"
             )
             self.send_json(detail[-1], HTTPStatus.CREATED)
+        elif method == "POST" and parsed.path == "/api/admin/operations/query":
+            body = json_body(self)
+            question = body.get("question") if isinstance(body, dict) else None
+            if not isinstance(question, str) or not 1 <= len(question.strip()) <= 500:
+                raise ApiError("请输入 1 至 500 字的运营问题")
+            self.send_json(operations_answer(question.strip(), body.get("serviceDate", "2026-10-14"), report_rows))
         elif method == "GET" and parsed.path == "/api/admin/overview":
             metrics = mysql_rows(
                 "SELECT "

@@ -1,9 +1,10 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css?v=2"><link rel="stylesheet" href="/admin-live.css?v=2"></head>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css?v=2"><link rel="stylesheet" href="/admin-live.css?v=2"><link rel="stylesheet" href="/admin-operations.css"></head>
 <body>
 <aside class="sidebar">
   <a class="admin-brand" href="/admin.html"><span>R</span><div><b>RailFlow</b><small>运营控制中心</small></div></a>
   <nav id="adminNav">
     <button class="active" data-view="overview"><i>⌂</i><span>运营总览</span></button>
+    <button data-view="operations"><i>?</i><span>运营问答</span></button>
     <button data-view="trains"><i>⇥</i><span>车次与库存</span></button>
     <button data-view="orders"><i>▤</i><span>订单与乘客</span></button>
     <button data-view="waitlist"><i>◷</i><span>候补队列</span><em id="waitBadge">0</em></button>
@@ -30,6 +31,21 @@
     </div>
   </section>
 
+  <section id="view-operations" class="view">
+    <section class="admin-card ops-card">
+      <form id="opsForm">
+        <label for="opsQuestion">运营问题</label>
+        <textarea id="opsQuestion" rows="2" maxlength="500" required placeholder="G8359 哪个区间候补人数最多？这个区间的二等座还剩多少？"></textarea>
+        <div class="ops-controls"><label>运营日 <input id="opsDate" type="date" value="2026-10-14" required></label>
+          <button id="opsSubmit" class="action-primary" type="submit">查询数据库</button></div>
+      </form>
+      <div class="ops-examples" aria-label="示例问题">
+        <button type="button">G8359 哪个区间候补人数最多？这个区间的二等座还剩多少？</button>
+        <button type="button">订单状态分布</button><button type="button">G8359 已支付订单有多少笔？</button><button type="button">缓冲请求状态分布</button>
+      </div>
+    </section>
+    <section id="opsResult" class="admin-card ops-card" hidden aria-live="polite"></section>
+  </section>
   <section id="view-trains" class="view">
     <div class="filter-bar"><label>运营日期<input id="trainDate" type="date" value="2026-10-14"></label><label class="grow">搜索车次<input id="trainSearch" placeholder="输入车次号"></label><button id="loadTrains" class="action-primary">查询车次</button></div>
     <div class="split-layout"><section class="admin-card table-card"><div class="card-head"><div><h2>运行车次</h2><p id="trainCount">读取中…</p></div><span class="auto-refresh"><i></i>实时数据</span></div><div class="table-scroll"><table><thead><tr><th>车次</th><th>运行区间</th><th>状态</th><th>席位</th><th>占用率</th><th>操作</th></tr></thead><tbody id="trainRows"></tbody></table></div></section><section class="admin-card detail-card"><div id="seatDetail" class="detail-empty"><span>▦</span><h3>选择一个车次</h3><p>查看各车厢、席别与实时库存</p></div></section></div>
@@ -65,4 +81,4 @@
     <section class="admin-card history-card"><div class="card-head"><div><h2>实验任务记录</h2><p>当前服务进程内的 AI 压测历史</p></div></div><div class="table-scroll"><table><thead><tr><th>任务 ID</th><th>模式</th><th>规模 / 并发</th><th>占座</th><th>支付</th><th>候补</th><th>失败</th><th>耗时</th><th>状态</th></tr></thead><tbody id="jobRows"><tr><td colspan="9" class="empty-cell">暂无任务记录</td></tr></tbody></table></div></section>
     <section class="admin-card ai-orders-card"><div class="card-head"><div><h2>AI 用户订单与退票</h2><p>精确操作某位 AI 乘客，或按指定区间随机批量释放席位</p></div><div class="ai-order-filters"><input id="aiRefundTrain" list="aiRunList" autocomplete="off" placeholder="完整车次号"><input id="aiOrderSearch" placeholder="搜索 AI 乘客"><button id="refreshAiOrders" class="action-secondary">查询</button></div></div><div class="batch-refund"><div><b>按区间随机批量退票</b><span>选择完整车次及上下车站，只处理完全匹配该区间的 AI 订单</span></div><input id="batchRefundTrain" list="aiRunList" autocomplete="off" placeholder="完整车次号，如 G8359"><select id="batchRefundFrom"><option value="">先输入车次</option></select><select id="batchRefundTo"><option value="">先选择上车站</option></select><label>随机人数<input id="batchRefundCount" type="number" min="1" max="100" value="5"></label><button id="batchRefundButton">执行批量退票</button></div><div class="table-scroll"><table><thead><tr><th>AI 乘客</th><th>订单号</th><th>车次 / 区间</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="aiOrderRows"><tr><td colspan="8" class="empty-cell">进入 AI 订票员后自动读取</td></tr></tbody></table></div></section>
   </section>
-</main><div id="adminToast" class="admin-toast"></div><script src="/admin.js?v=4"></script></body></html>
+</main><div id="adminToast" class="admin-toast"></div><script src="/admin.js?v=5"></script><script src="/admin-operations.js"></script></body></html>
