@@ -7,7 +7,21 @@ meta.operations=['AI 运营问答','按运营日查询候补、订单和缓冲�
 function toast(message,error=false){const el=$('adminToast');el.textContent=message;el.className='admin-toast show'+(error?' error':'');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3000)}
 function number(v){return Number(v||0).toLocaleString('zh-CN')}function percent(v){return Math.max(0,Math.min(100,Number(v||0)))}
 function statusPill(value){const map={ON_SALE:['sale','售票中'],PLANNED:['pending','计划中'],STOP_SALE:['closed','停售'],PAID:['paid','已支付'],PENDING_PAYMENT:['pending','待支付'],CANCELLED:['cancelled','已取消'],TIMEOUT:['closed','已超时'],REFUNDED:['closed','已退款'],WAITLIST_PENDING:['pending','候补中'],WAITLIST_FAILED:['closed','候补失败'],WAITING:['waiting','排队中'],MATCHING:['pending','匹配中'],MATCHED_HOLD:['pending','已占座'],FULFILLED:['paid','已兑现'],EXPIRED:['closed','已过期']},m=map[value]||['closed',value];return `<span class="state-pill ${m[0]}">${m[1]}</span>`}
-function showView(view){currentView=view;history.replaceState(null,'',`#${view}`);document.querySelectorAll('#adminNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));[$('viewTitle').textContent,$('viewSubtitle').textContent]=meta[view];loadView(view)}
+function showView(view) {
+  const changed = currentView !== view;
+  currentView = view;
+  history.replaceState(null, '', `#${view}`);
+  document.querySelectorAll('#adminNav button').forEach(button => {
+    const active = button.dataset.view === view;
+    button.classList.toggle('active', active);
+    if (active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.view').forEach(panel => panel.classList.toggle('active', panel.id === `view-${view}`));
+  [$('viewTitle').textContent, $('viewSubtitle').textContent] = meta[view];
+  if (changed) window.scrollTo(0, 0);
+  loadView(view);
+}
 async function loadView(view){try{if(view==='overview')await loadOverview();if(view==='trains')await loadTrains();if(view==='orders')await Promise.all([loadOrders(),loadPassengers()]);if(view==='waitlist')await loadWaits();if(view==='buffer')await loadBuffer();if(view==='ai')await loadAiOptions()}catch(error){toast(error.message,true)}}
 async function loadOverview(){const data=await api('/api/admin/overview');$('adminHealth').className='system-state';$('adminHealth').innerHTML='<i></i><span>数据库运行正常</span>';$('mRuns').textContent=number(data.metrics.runs);$('mOnSale').textContent=`${number(data.metrics.on_sale)} 趟正在售票`;$('mSeats').textContent=number(data.metrics.seats);$('mOccupancy').textContent=`${data.metrics.occupancy_rate}% 已占用`;$('mOrders').textContent=number(data.metrics.orders);$('mPaid').textContent=`${number(data.metrics.paid_orders)} 笔已支付`;$('mWaits').textContent=number(data.metrics.waiting);$('mUsers').textContent=`${number(data.metrics.passengers)} 位注册乘客`;$('waitBadge').textContent=data.metrics.waiting;renderPulse(data.pulse);renderDonut(data.order_statuses,data.metrics.orders);renderTopTrains(data.top_trains);renderActivity(data.activity)}
 function renderPulse(rows){const max=Math.max(1,...rows.flatMap(r=>[Number(r.orders),Number(r.inventory)]));$('pulseChart').innerHTML=rows.map(r=>`<div class="bar-group" title="${r.bucket}: ${r.orders} 订单事件 / ${r.inventory} 库存事件"><i style="height:${Math.max(2,Number(r.orders)/max*100)}%"></i><i style="height:${Math.max(2,Number(r.inventory)/max*100)}%"></i><span>${String(r.bucket).slice(11,16)}</span></div>`).join('')||'<div class="empty-cell">暂无近期事件</div>'}

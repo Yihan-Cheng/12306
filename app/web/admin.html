@@ -1,29 +1,40 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css?v=2"><link rel="stylesheet" href="/admin-live.css?v=2"><link rel="stylesheet" href="/admin-operations.css?v=2"></head>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css?v=3"><link rel="stylesheet" href="/admin-live.css?v=2"><link rel="stylesheet" href="/admin-operations.css?v=4"></head>
 <body>
 <aside class="sidebar">
   <a class="admin-brand" href="/admin.html"><span>R</span><div><b>RailFlow</b><small>运营控制中心</small></div></a>
   <nav id="adminNav">
-    <button class="active" data-view="overview"><i>⌂</i><span>运营总览</span></button>
+    <button class="active" data-view="overview" aria-label="运营总览" title="运营总览"><i>⌂</i><span>运营总览</span></button>
     <button data-view="operations" class="ai-nav" aria-label="AI 运营问答" title="AI 运营问答"><i>✦</i><span>运营问答</span><b class="ai-feature-badge">AI</b></button>
     <button data-view="anomalies" class="ai-nav" aria-label="AI 异常检测" title="AI 异常检测"><i>✧</i><span>异常检测</span><b class="ai-feature-badge">AI</b></button>
-    <button data-view="trains"><i>⇥</i><span>车次与库存</span></button>
-    <button data-view="orders"><i>▤</i><span>订单与乘客</span></button>
-    <button data-view="waitlist"><i>◷</i><span>候补队列</span><em id="waitBadge">0</em></button>
-    <button data-view="buffer"><i>⇌</i><span>流量缓冲</span><b class="new-badge">DB</b></button>
+    <button data-view="trains" aria-label="车次与库存" title="车次与库存"><i>⇥</i><span>车次与库存</span></button>
+    <button data-view="orders" aria-label="订单与乘客" title="订单与乘客"><i>▤</i><span>订单与乘客</span></button>
+    <button data-view="waitlist" aria-label="候补队列" title="候补队列"><i>◷</i><span>候补队列</span><em id="waitBadge">0</em></button>
+    <button data-view="buffer" aria-label="流量缓冲" title="流量缓冲"><i>⇌</i><span>流量缓冲</span><b class="new-badge">DB</b></button>
     <button data-view="ai" class="ai-nav" aria-label="AI 订票员，模拟乘客压测" title="AI 订票员 · 模拟乘客压测"><i>✦</i><span>AI 订票员</span><b class="ai-feature-badge">LAB</b></button>
   </nav>
-  <a href="/admin-monitor.html" target="_blank" rel="noopener" style="display:block;margin:12px 8px;padding:13px 10px;border:1px solid #477564;border-radius:9px;color:#a7eed3;text-decoration:none;font-size:13px;font-weight:700">▦ 实时演示看板 ↗</a>
-  <div class="side-bottom"><button id="adminLogout" class="admin-logout">退出管理端</button><div class="admin-profile"><span>管</span><div><b id="adminDisplayName">系统管理员</b><small>独立运营管理环境</small></div><i></i></div></div>
+  <a class="monitor-link" href="/admin-monitor.html" target="_blank" rel="noopener" aria-label="实时演示看板（新窗口）" title="实时演示看板"><span aria-hidden="true">▦</span> <span class="monitor-label">实时演示看板 ↗</span></a>
+  <div class="side-bottom"><button id="adminLogout" class="admin-logout" aria-label="退出管理端" title="退出管理端"><span class="logout-icon" aria-hidden="true">↪</span><span class="logout-label">退出管理端</span></button><div class="admin-profile"><span>管</span><div><b id="adminDisplayName">系统管理员</b><small>独立运营管理环境</small></div><i></i></div></div>
 </aside>
 <main class="admin-main">
   <header><div><h1 id="viewTitle">运营总览</h1><p id="viewSubtitle">实时掌握铁路客票系统运行状态</p></div><div class="header-actions"><div id="adminHealth" class="system-state"><i></i><span>系统检测中</span></div><span id="clock"></span><button id="refreshAll" title="刷新当前页面">↻</button></div></header>
   <section id="view-overview" class="view active">
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>客票运营概况</h2>
+        <p>查看运行车次、席位负载和订单变化，或进一步查询运营数据。</p>
+      </div>
+    </section>
     <div class="metric-grid">
       <article class="metric blue"><div><span>今日运行车次</span><strong id="mRuns">—</strong><small id="mOnSale">— 趟正在售票</small></div><i>⇥</i></article>
       <article class="metric green"><div><span>有效座位资源</span><strong id="mSeats">—</strong><small id="mOccupancy">— 已占用</small></div><i>▦</i></article>
       <article class="metric orange"><div><span>累计订单</span><strong id="mOrders">—</strong><small id="mPaid">— 笔已支付</small></div><i>▤</i></article>
       <article class="metric purple"><div><span>候补等待</span><strong id="mWaits">—</strong><small id="mUsers">— 位注册乘客</small></div><i>◷</i></article>
     </div>
+    <section class="analysis-entry" aria-label="AI 分析">
+      <div><strong>AI 分析</strong><p>查询运营数据，或核查库存与订票队列。</p></div>
+      <button type="button" data-goto="operations">运营问答 <span aria-hidden="true">↗</span></button>
+      <button type="button" data-goto="anomalies">异常检测 <span aria-hidden="true">↗</span></button>
+    </section>
     <div class="dashboard-grid">
       <section class="admin-card span-2"><div class="card-head"><div><h2>实时交易脉冲</h2><p>最近 12 个时间窗口内的订单与库存事件</p></div><div class="legend"><span><i class="blue-dot"></i>订单</span><span><i class="green-dot"></i>库存</span></div></div><div id="pulseChart" class="bar-chart"></div></section>
       <section class="admin-card"><div class="card-head"><div><h2>订单状态</h2><p>全量订单生命周期分布</p></div></div><div id="orderDonut" class="donut-wrap"></div></section>
@@ -33,69 +44,121 @@
   </section>
 
   <section id="view-operations" class="view">
-    <section class="admin-card ops-card">
-      <form id="opsForm">
-        <label for="opsQuestion">运营问题</label>
-        <textarea id="opsQuestion" rows="2" maxlength="500" required placeholder="G8359 哪个区间候补人数最多？这个区间的二等座还剩多少？"></textarea>
-        <div class="ops-controls"><label>运营日 <input id="opsDate" type="date" value="2026-10-14" required></label>
-          <button id="opsSubmit" class="action-primary" type="submit">查询数据库</button></div>
-      </form>
-      <div class="ops-examples" aria-label="示例问题">
-        <button type="button">G8359 哪个区间候补人数最多？这个区间的二等座还剩多少？</button>
-        <button type="button">订单状态分布</button><button type="button">G8359 已支付订单有多少笔？</button><button type="button">缓冲请求状态分布</button>
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>今天想查什么？</h2>
+        <p>按运营日查候补、订单和订票缓冲。每次查询都可核对统计口径、结果和执行的 SQL。</p>
       </div>
     </section>
-    <section id="opsResult" class="admin-card ops-card" hidden aria-live="polite"></section>
-  </section>
-  <section id="view-anomalies" class="view">
-    <section class="admin-card ops-card">
-      <form id="anomalyForm">
-        <div class="ops-controls">
-          <label>库存运营日 <input id="anomalyDate" type="date" value="2026-10-14" required></label>
-          <label>车次 <input id="anomalyTrain" value="G8359" maxlength="8" required></label>
-          <button class="action-primary" type="submit">检测当前数据</button>
-          <button id="anomalyExplain" class="action-secondary" type="button">检测并解释</button>
+    <div class="analysis-grid">
+      <form id="opsForm" class="admin-card analysis-card">
+        <label class="analysis-label" for="opsQuestion">问一个运营问题</label>
+        <textarea id="opsQuestion" rows="3" maxlength="500" required placeholder="例如：G8359 哪个区间候补人数最多？这个区间的二等座还剩多少？"></textarea>
+        <div class="analysis-actions">
+          <label class="analysis-field" for="opsDate">运营日 <input id="opsDate" type="date" value="2026-10-14" required></label>
+          <button id="opsSubmit" class="analysis-button primary" type="submit">分析问题 <span aria-hidden="true">→</span></button>
         </div>
       </form>
-      <p>库存按所选车次核对。缓冲覆盖全库请求，每5秒后台采样。页面显示本次检测快照。</p>
-      <p>启用模型时，「检测并解释」会将库存汇总、缓冲采样和规则说明发送到配置的模型服务。模型建议需人工核查。</p>
-      <button id="anomalyDemo" class="action-secondary" type="button">用模拟样本验证规则</button>
+      <section class="admin-card analysis-card">
+        <h3>常用查询</h3>
+        <div class="analysis-prompts ops-examples">
+          <button type="button" data-question="G8359 哪个区间候补人数最多？这个区间的二等座还剩多少？"><span><strong>候补与余票</strong><small>G8359 最拥挤区间还剩多少二等座？</small></span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-question="订单状态分布"><span><strong>订单状态</strong><small>按当前状态统计订单数</small></span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-question="G8359 已支付订单有多少笔？"><span><strong>支付订单</strong><small>查询 G8359 的已支付订单数</small></span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-question="缓冲请求状态分布"><span><strong>缓冲请求</strong><small>查看队列请求的当前状态分布</small></span><span aria-hidden="true">↗</span></button>
+        </div>
+      </section>
+    </div>
+    <section id="opsResult" class="admin-card analysis-card analysis-result" hidden aria-live="polite"></section>
+  </section>
+  <section id="view-anomalies" class="view">
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>库存与队列诊断</h2>
+        <p>核对指定车次的席位分配，查看全库订票缓冲是否持续积压。</p>
+      </div>
     </section>
-    <section id="anomalyResult" class="admin-card ops-card" hidden aria-live="polite"></section>
+    <section class="admin-card analysis-card">
+      <form id="anomalyForm">
+        <div class="analysis-actions">
+          <label class="analysis-field" for="anomalyDate">库存运营日 <input id="anomalyDate" type="date" value="2026-10-14" required></label>
+          <label class="analysis-field" for="anomalyTrain">车次 <input id="anomalyTrain" value="G8359" maxlength="8" required></label>
+          <button id="anomalyRun" class="analysis-button primary" type="submit">运行检测 <span aria-hidden="true">→</span></button>
+          <button id="anomalyExplain" class="analysis-button" type="button">检测并解释</button>
+        </div>
+      </form>
+      <p class="analysis-note">启用模型时，「检测并解释」会向配置的模型服务发送库存汇总、缓冲采样和规则说明。模型建议需人工核查。</p>
+      <button id="anomalyDemo" class="analysis-button" type="button">查看模拟异常</button>
+    </section>
+    <section id="anomalyResult" class="analysis-result" hidden aria-live="polite"></section>
   </section>
   <section id="view-trains" class="view">
-    <div class="filter-bar"><label>运营日期<input id="trainDate" type="date" value="2026-10-14"></label><label class="grow">搜索车次<input id="trainSearch" placeholder="输入车次号"></label><button id="loadTrains" class="action-primary">查询车次</button></div>
-    <div class="split-layout"><section class="admin-card table-card"><div class="card-head"><div><h2>运行车次</h2><p id="trainCount">读取中…</p></div><span class="auto-refresh"><i></i>实时数据</span></div><div class="table-scroll"><table><thead><tr><th>车次</th><th>运行区间</th><th>状态</th><th>席位</th><th>占用率</th><th>操作</th></tr></thead><tbody id="trainRows"></tbody></table></div></section><section class="admin-card detail-card"><div id="seatDetail" class="detail-empty"><span>▦</span><h3>选择一个车次</h3><p>查看各车厢、席别与实时库存</p></div></section></div>
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>查询车次与区间余票</h2>
+        <p>先选择运行车次，再按上下车站查看各车厢的可售席位。</p>
+      </div>
+    </section>
+    <div class="admin-card analysis-card analysis-actions train-filters">
+      <label class="analysis-field">运营日期<input id="trainDate" type="date" value="2026-10-14"></label>
+      <label class="analysis-field search-field">搜索车次<input id="trainSearch" placeholder="输入完整车次号"></label>
+      <button id="loadTrains" class="analysis-button primary">查询车次 <span aria-hidden="true">→</span></button>
+    </div>
+    <div class="split-layout"><section class="admin-card table-card"><div class="card-head"><div><h2>运行车次</h2><p id="trainCount">读取中…</p></div><span class="auto-refresh"><i></i>实时数据</span></div><div class="table-scroll"><table><thead><tr><th>车次</th><th>运行区间</th><th>状态</th><th>席位</th><th>占用率</th><th>操作</th></tr></thead><tbody id="trainRows"></tbody></table></div></section><section class="admin-card detail-card"><div id="seatDetail"><div class="detail-empty"><span>▦</span><h3>选择一个车次</h3><p>查看各车厢、席别与实时库存</p></div></div></section></div>
   </section>
 
   <section id="view-orders" class="view">
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>订单流水与乘客档案</h2>
+        <p>按状态筛选订单，或通过姓名和用户名查找乘客档案。</p>
+      </div>
+    </section>
     <div class="subtabs"><button class="active" data-sub="orderTable">订单流水</button><button data-sub="passengerTable">乘客档案</button></div>
     <section id="orderTable" class="admin-card table-card subview active"><div class="card-head"><div><h2>订单流水</h2></div><div class="order-filters"><label class="inline-filter">状态<select id="orderStatus"><option value="">全部状态</option><option value="WAITLIST_PENDING">候补中</option><option value="PAID">已支付</option><option value="PENDING_PAYMENT">待支付</option><option value="REFUNDED">已退款</option><option value="WAITLIST_FAILED">候补失败</option><option value="CANCELLED">已取消</option><option value="TIMEOUT">已超时</option></select></label><label class="inline-filter">时间<select id="orderSort"><option value="desc">最新优先</option><option value="asc">最早优先</option></select></label></div></div><div class="table-scroll"><table class="order-ledger"><thead><tr><th>记录号</th><th>乘客 / 用户</th><th>行程</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th></tr></thead><tbody id="orderRows"></tbody></table></div></section>
-    <section id="passengerTable" class="admin-card table-card subview"><div class="card-head"><div><h2>乘客档案</h2><p>隐私安全的乘车人账户概览</p></div><input id="passengerSearch" class="compact-search" placeholder="搜索用户名或乘车人"></div><div class="table-scroll"><table><thead><tr><th>乘客 ID</th><th>乘车人</th><th>所属用户</th><th>账户状态</th><th>历史订单</th><th>候补次数</th><th>注册时间</th></tr></thead><tbody id="passengerRows"></tbody></table></div></section>
+    <section id="passengerTable" class="admin-card table-card subview"><div class="card-head"><div><h2>乘客档案</h2><p>隐私安全的乘车人账户概览</p></div><input id="passengerSearch" aria-label="搜索用户名或乘车人" class="compact-search" placeholder="搜索用户名或乘车人"></div><div class="table-scroll"><table><thead><tr><th>乘客 ID</th><th>乘车人</th><th>所属用户</th><th>账户状态</th><th>历史订单</th><th>候补次数</th><th>注册时间</th></tr></thead><tbody id="passengerRows"></tbody></table></div></section>
   </section>
 
   <section id="view-waitlist" class="view">
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>候补排队与兑现</h2>
+        <p>库存释放后按队列自动匹配。可在明细中核对公平保护和重试次数。</p>
+      </div>
+    </section>
     <div class="wait-summary"><div><span>当前排队</span><b id="wWaiting">—</b></div><div><span>已兑现</span><b id="wMatched">—</b></div><div><span>公平保护</span><b id="wProtected">—</b></div><div><span>累计跳过</span><b id="wSkipped">—</b></div></div>
-    <section class="admin-card table-card"><div class="card-head"><div><h2>候补队列监控</h2><p>库存释放后自动匹配，队列按创建时间稳定排序</p></div><div class="card-actions"><span class="live-indicator"><i></i>自动匹配中</span><button id="loadWaits" class="action-secondary">刷新队列</button></div></div><div class="table-scroll"><table><thead><tr><th>队列位次</th><th>请求号</th><th>车次 / 席别</th><th>区间</th><th>人数</th><th>状态</th><th>重试 / 跳过</th><th>截止时间</th></tr></thead><tbody id="waitRows"></tbody></table></div></section>
+    <section class="admin-card table-card"><div class="card-head"><div><h2>候补队列监控</h2><p>库存释放后自动匹配，队列按创建时间稳定排序</p></div><div class="card-actions"><span class="live-indicator"><i></i>自动匹配中</span><button id="loadWaits" class="analysis-button">刷新队列</button></div></div><div class="table-scroll"><table><thead><tr><th>队列位次</th><th>请求号</th><th>车次 / 席别</th><th>区间</th><th>人数</th><th>状态</th><th>重试 / 跳过</th><th>截止时间</th></tr></thead><tbody id="waitRows"></tbody></table></div></section>
   </section>
 
   <section id="view-buffer" class="view">
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>订票请求处理情况</h2>
+        <p>查看数据库队列的积压数量、平均耗时和单条请求的处理结果。</p>
+      </div>
+    </section>
     <div class="wait-summary"><div><span>等待处理</span><b id="bQueued">—</b></div><div><span>正在处理</span><b id="bProcessing">—</b></div><div><span>成功订单</span><b id="bSucceeded">—</b></div><div><span>平均耗时</span><b id="bLatency">—</b></div></div>
-    <section class="admin-card table-card"><div class="card-head"><div><h2>数据库流量缓冲区</h2><p>持久化队列、幂等键、租约恢复与 SKIP LOCKED 多工作者消费</p></div><button id="loadBuffer" class="action-secondary">刷新缓冲区</button></div><div class="table-scroll"><table><thead><tr><th>请求</th><th>用户 / 乘客</th><th>车次与区间</th><th>席别</th><th>状态</th><th>尝试</th><th>耗时</th><th>错误</th></tr></thead><tbody id="bufferRows"></tbody></table></div></section>
+    <section class="admin-card table-card"><div class="card-head"><div><h2>数据库流量缓冲区</h2><p>持久化队列、幂等键、租约恢复与 SKIP LOCKED 多工作者消费</p></div><button id="loadBuffer" class="analysis-button">刷新缓冲区</button></div><div class="table-scroll"><table><thead><tr><th>请求</th><th>用户 / 乘客</th><th>车次与区间</th><th>席别</th><th>状态</th><th>尝试</th><th>耗时</th><th>错误</th></tr></thead><tbody id="bufferRows"></tbody></table></div></section>
   </section>
 
   <section id="view-ai" class="view">
-    <div class="ai-hero"><div class="ai-orb">AI</div><div><span>LOAD TESTING LAB</span><h2>AI 订票员 · 真实库存压测</h2><p>模拟用户并发调用数据库购票流程，用于验证位图库存、防超卖与公平候补。</p></div><div class="ai-safety"><i></i><span>实验环境</span><small>操作会真实改变演示数据库库存</small></div></div>
+    <section class="analysis-hero">
+      <div class="analysis-hero-content">
+        <h2>AI 订票压测</h2>
+        <p>模拟并发购票，验证位图库存、防超卖与公平候补。</p>
+      </div>
+      <span class="analysis-hero-status">实验环境 · 影响演示库存</span>
+    </section>
     <div class="ai-layout">
       <section class="admin-card ai-config"><div class="card-head"><div><h2>创建模拟任务</h2><p>选择行为策略与负载参数</p></div></div>
         <div class="mode-cards"><label><input type="radio" name="aiMode" value="random" checked><span><i>⌘</i><b>随机抢票</b><small>随机选择车次、区间与席别</small></span></label><label><input type="radio" name="aiMode" value="targeted"><span><i>◎</i><b>定向压测</b><small>集中消耗指定车次席别</small></span></label></div>
-        <div id="targetFields" class="target-fields disabled"><label>目标车次<input id="aiRunSearch" list="aiRunList" autocomplete="off" placeholder="输入完整车次号，如 G8359"><datalist id="aiRunList"></datalist><input id="aiRun" type="hidden"><small id="aiRunMatch">输入车次号后自动匹配</small></label><label>目标席别<select id="aiSeatType"><option value="">先选择车次</option></select></label><label>上车站<select id="aiFromOrder"><option value="">先选择车次</option></select></label><label>下车站<select id="aiToOrder"><option value="">先选择上车站</option></select></label><label>课堂演示预留张数<input id="aiKeepSeats" type="number" min="1" value="10"><small>根据实时余票计算预置人数</small></label><button id="aiCalculate" type="button">按实时余票计算订票人数</button><label>该区间订票人数<input id="aiTargetUsers" type="number" min="1" max="500" value="50"><small id="aiTargetHint">所有 AI 用户均预订此区间</small></label></div>
+        <div id="targetFields" class="target-fields disabled"><label>目标车次<input id="aiRunSearch" list="aiRunList" autocomplete="off" placeholder="输入完整车次号，如 G8359"><datalist id="aiRunList"></datalist><input id="aiRun" type="hidden"><small id="aiRunMatch">输入车次号后自动匹配</small></label><label>目标席别<select id="aiSeatType"><option value="">先选择车次</option></select></label><label>上车站<select id="aiFromOrder"><option value="">先选择车次</option></select></label><label>下车站<select id="aiToOrder"><option value="">先选择上车站</option></select></label><label>课堂演示预留张数<input id="aiKeepSeats" type="number" min="1" value="10"><small>根据实时余票计算预置人数</small></label><button id="aiCalculate" class="analysis-button" type="button">按实时余票计算订票人数</button><label>该区间订票人数<input id="aiTargetUsers" type="number" min="1" max="500" value="50"><small id="aiTargetHint">所有 AI 用户均预订此区间</small></label></div>
         <div class="form-grid"><label id="randomUserField">随机模拟用户数<input id="aiUsers" type="number" min="1" max="500" value="50"><small>随机模式下创建 1–500 位 AI 乘客</small></label><label>并发线程数<input id="aiConcurrency" type="number" min="1" max="30" value="8"><small>建议不超过本机 CPU × 2</small></label><label>自动支付率<div class="range-line"><input id="aiPayRate" type="range" min="0" max="100" value="70"><output id="payOutput">70%</output></div><small>未支付订单保持预占状态</small></label><label class="check-row"><input id="aiWaitlist" type="checkbox" checked><span><b>余票不足时加入候补</b><small>用于产生并检验公平候补队列</small></span></label></div>
-        <div class="notice"><b>实验提示</b><span>该操作调用真实存储过程，生成的 AI 用户、订单及候补记录会保留在数据库中，便于课程验收。</span></div><button id="startAI" class="run-button"><span>▶</span> 启动 AI 订票任务</button>
+        <div class="notice"><b>实验提示</b><span>该操作调用真实存储过程，生成的 AI 用户、订单及候补记录会保留在数据库中，便于课程验收。</span></div><button id="startAI" class="analysis-button primary run-button"><span>▶</span> 启动 AI 订票任务</button>
       </section>
       <section class="admin-card ai-monitor"><div class="card-head"><div><h2>任务监视器</h2><p>实时追踪执行进度与结果</p></div><span id="jobState" class="job-state idle">待启动</span></div><div id="jobEmpty" class="job-empty"><div>✦</div><h3>尚无运行任务</h3><p>配置左侧参数并启动一次模拟</p></div><div id="jobProgress" class="job-progress hidden"><div class="progress-ring" id="progressRing"><div><b id="jobPercent">0%</b><small>完成</small></div></div><div class="job-stats"><div><span>成功占座</span><b id="jHeld">0</b></div><div><span>完成支付</span><b id="jPaid">0</b></div><div><span>进入候补</span><b id="jWaited">0</b></div><div><span>请求失败</span><b id="jFailed">0</b></div></div><div class="throughput"><span>实时吞吐</span><b id="jRps">0.0 req/s</b></div><div id="jobErrors" class="job-errors"></div></div></section>
     </div>
     <section class="admin-card history-card"><div class="card-head"><div><h2>实验任务记录</h2><p>当前服务进程内的 AI 压测历史</p></div></div><div class="table-scroll"><table><thead><tr><th>任务 ID</th><th>模式</th><th>规模 / 并发</th><th>占座</th><th>支付</th><th>候补</th><th>失败</th><th>耗时</th><th>状态</th></tr></thead><tbody id="jobRows"><tr><td colspan="9" class="empty-cell">暂无任务记录</td></tr></tbody></table></div></section>
-    <section class="admin-card ai-orders-card"><div class="card-head"><div><h2>AI 用户订单与退票</h2><p>精确操作某位 AI 乘客，或按指定区间随机批量释放席位</p></div><div class="ai-order-filters"><input id="aiRefundTrain" list="aiRunList" autocomplete="off" placeholder="完整车次号"><input id="aiOrderSearch" placeholder="搜索 AI 乘客"><button id="refreshAiOrders" class="action-secondary">查询</button></div></div><div class="batch-refund"><div><b>按区间随机批量退票</b><span>选择完整车次及上下车站，只处理完全匹配该区间的 AI 订单</span></div><input id="batchRefundTrain" list="aiRunList" autocomplete="off" placeholder="完整车次号，如 G8359"><select id="batchRefundFrom"><option value="">先输入车次</option></select><select id="batchRefundTo"><option value="">先选择上车站</option></select><label>随机人数<input id="batchRefundCount" type="number" min="1" max="100" value="5"></label><button id="batchRefundButton">执行批量退票</button></div><div class="table-scroll"><table><thead><tr><th>AI 乘客</th><th>订单号</th><th>车次 / 区间</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="aiOrderRows"><tr><td colspan="8" class="empty-cell">进入 AI 订票员后自动读取</td></tr></tbody></table></div></section>
+    <section class="admin-card ai-orders-card"><div class="card-head"><div><h2>AI 用户订单与退票</h2><p>精确操作某位 AI 乘客，或按指定区间随机批量释放席位</p></div><div class="ai-order-filters"><input id="aiRefundTrain" aria-label="按完整车次号搜索 AI 订单" list="aiRunList" autocomplete="off" placeholder="完整车次号"><input id="aiOrderSearch" aria-label="搜索 AI 乘客" placeholder="搜索 AI 乘客"><button id="refreshAiOrders" class="analysis-button">查询</button></div></div><div class="batch-refund"><div><b>按区间随机批量退票</b><span>选择完整车次及上下车站，只处理完全匹配该区间的 AI 订单</span></div><input id="batchRefundTrain" aria-label="批量退票车次" list="aiRunList" autocomplete="off" placeholder="完整车次号，如 G8359"><select id="batchRefundFrom" aria-label="批量退票上车站"><option value="">先输入车次</option></select><select id="batchRefundTo" aria-label="批量退票下车站"><option value="">先选择上车站</option></select><label>随机人数<input id="batchRefundCount" type="number" min="1" max="100" value="5"></label><button id="batchRefundButton">执行批量退票</button></div><div class="table-scroll"><table><thead><tr><th>AI 乘客</th><th>订单号</th><th>车次 / 区间</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="aiOrderRows"><tr><td colspan="8" class="empty-cell">进入 AI 订票员后自动读取</td></tr></tbody></table></div></section>
   </section>
-</main><div id="adminToast" class="admin-toast"></div><script src="/admin.js?v=7"></script><script src="/admin-operations.js"></script><script src="/admin-anomalies.js"></script></body></html>
+</main><div id="adminToast" class="admin-toast"></div><script src="/admin.js?v=8"></script><script src="/admin-analysis.js"></script><script src="/admin-operations.js?v=2"></script><script src="/admin-anomalies.js?v=2"></script></body></html>

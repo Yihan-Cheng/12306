@@ -1,40 +1,29 @@
 const opsForm = $('opsForm');
 const opsResult = $('opsResult');
+const opsPrompts = document.querySelectorAll('.ops-examples button');
 
-function renderOpsReport(report) {
+function renderOpsReport(report, question) {
   opsResult.replaceChildren();
-  function add(tag, text, parent = opsResult) {
-    const node = document.createElement(tag);
-    node.textContent = text;
-    parent.append(node);
-    return node;
-  }
-  if (report.clarify) {
-    add('p', report.clarify);
-    if (report.mode) add('small', report.mode);
-    return;
-  }
-  add('small', [report.scope, report.mode, new Date(report.checked_at).toLocaleString('zh-CN')].join(' · '));
-  add('h2', report.title);
-  add('p', report.answer);
-  add('h3', '统计口径');
-  add('p', report.definition);
+  const mode = report.mode || '';
+  const timestamp = report.checked_at && new Date(report.checked_at).toLocaleString('zh-CN');
+  const metadata = [report.scope, mode, timestamp].filter(Boolean);
+  if (metadata.length) analysisElement(opsResult, 'small', metadata.join(' · '), 'analysis-meta');
+  analysisElement(opsResult, 'h2', report.clarify ? '请补充查询条件' : report.title);
+  if (question !== report.title) analysisElement(opsResult, 'p', question, 'analysis-question');
+  analysisElement(opsResult, 'p', report.clarify || report.answer, 'analysis-answer');
+  if (report.clarify) return;
+
   if (report.rows.length) {
-    const scroll = add('div', '');
-    scroll.className = 'table-scroll';
-    const table = add('table', '', scroll);
-    const head = table.createTHead().insertRow();
-    for (const [, label] of report.columns) add('th', label, head);
-    const body = table.createTBody();
-    for (const record of report.rows) {
-      const row = body.insertRow();
-      for (const [key] of report.columns) add('td', record[key] ?? '无在售产品', row);
-    }
+    analysisTable(opsResult, report.columns, report.rows, '无在售产品');
+  } else {
+    analysisElement(opsResult, 'p', '结果表为空', 'analysis-empty');
   }
-  const details = add('details', '');
-  add('summary', '查看执行的 SQL 与绑定参数', details);
-  add('pre', report.sql, details);
-  add('p', '绑定参数　' + JSON.stringify(report.params), details);
+
+  const evidence = analysisDetails(opsResult, '统计口径');
+  analysisElement(evidence, 'p', report.definition);
+  const query = analysisDetails(opsResult, '查看执行的 SQL 与绑定参数');
+  analysisElement(query, 'pre', report.sql);
+  analysisElement(query, 'p', '绑定参数　' + JSON.stringify(report.params));
 }
 
 opsForm.onsubmit = async event => {
@@ -44,23 +33,26 @@ opsForm.onsubmit = async event => {
   const question = $('opsQuestion').value.trim();
   if (!question) { $('opsQuestion').focus(); return; }
   button.disabled = true;
-  opsResult.hidden = false;
-  opsResult.textContent = '正在查询运营数据库…';
+  opsPrompts.forEach(prompt => { prompt.disabled = true; });
+  analysisMessage(opsResult, '正在分析问题并查询数据库…', 'loading');
   try {
-    const report = await api('/api/admin/operations/query', {method: 'POST',
-      body: JSON.stringify({question, serviceDate: $('opsDate').value})});
-    renderOpsReport(report);
+    const report = await api('/api/admin/operations/query', {
+      method: 'POST',
+      body: JSON.stringify({question, serviceDate: $('opsDate').value})
+    });
+    renderOpsReport(report, question);
   } catch (error) {
-    opsResult.textContent = error.message;
+    analysisMessage(opsResult, error.message, 'error');
   } finally {
+    opsResult.setAttribute('aria-busy', 'false');
     button.disabled = false;
+    opsPrompts.forEach(prompt => { prompt.disabled = false; });
   }
 };
 
-document.querySelectorAll('.ops-examples button').forEach(button => {
+opsPrompts.forEach(button => {
   button.onclick = () => {
-    if ($('opsSubmit').disabled) return;
-    $('opsQuestion').value = button.textContent;
+    $('opsQuestion').value = button.dataset.question;
     opsForm.requestSubmit();
   };
 });
