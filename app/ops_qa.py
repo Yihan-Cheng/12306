@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 
 from model_api import call_tool
+from ops_analysis import analyze_operations
 
 
 @dataclass(frozen=True)
@@ -136,10 +137,14 @@ def operations_answer(question, service_date, read_rows):
     try:
         day, train, limit, text, top = parse_scope(question, service_date)
     except Clarify as exc:
+        if os.getenv("CR12306_AI_API_KEY"):
+            return analyze_operations(question, service_date, read_rows)
         return {"clarify": str(exc)}
     candidates = {k: query_for(r, train, limit if k == "waiting" else 20)
                   for k, r in REPORTS.items() if not top or k == "waiting"}
     known = next((k for k in candidates if re.fullmatch(REPORTS[k].pattern, text)), None)
+    if known is None and os.getenv("CR12306_AI_API_KEY"):
+        return analyze_operations(question, service_date, read_rows)
     metric, mode, clarification = select_report(question, candidates, known, day)
     if not metric:
         return {"clarify": clarification, "mode": mode}

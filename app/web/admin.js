@@ -93,8 +93,44 @@ function updateAiToStops(){
   $('aiToOrder').innerHTML=valid.map(s=>`<option value="${s.station_order}">${escapeHtml(s.station_name)}</option>`).join('')||'<option value="">没有可选下车站</option>';
 }
 async function calculateAiUsers(){const runId=$('aiRun').value,seatTypeId=$('aiSeatType').value,fromOrder=$('aiFromOrder').value,toOrder=$('aiToOrder').value,keep=Number($('aiKeepSeats').value);if(!runId||!seatTypeId||!fromOrder||!toOrder)return toast('请先选择车次、区间和席别',true);if(!Number.isInteger(keep)||keep<1)return toast('预留张数至少为 1',true);try{const row=await api(`/api/availability?${new URLSearchParams({runId,seatTypeId,fromOrder,toOrder})}`),available=Number(row.available_seats),users=available-keep;if(users<1)return toast(`该区间当前只有 ${available} 张余票，无法预留 ${keep} 张后再预置`,true);if(users>500)return toast(`需要预置 ${users} 人，超过单次上限 500，请缩小席位范围`,true);$('aiTargetUsers').value=users;$('aiTargetHint').textContent=`实时余票 ${available} 张；预置 ${users} 人后，目标剩余约 ${keep} 张`;$('aiConcurrency').value=2;$('aiPayRate').value=100;$('payOutput').textContent='100%';$('aiWaitlist').checked=false;toast(`已按 ${available} 张余票计算出 ${users} 名 AI 订票员`)}catch(error){toast(error.message,true)}}
-async function startAi(){const mode=document.querySelector('[name=aiMode]:checked').value,body={mode,users:Number(mode==='targeted'?$('aiTargetUsers').value:$('aiUsers').value),concurrency:Number($('aiConcurrency').value),payRate:Number($('aiPayRate').value),waitlist:$('aiWaitlist').checked};if(mode==='targeted'){body.runId=$('aiRun').value;body.seatTypeId=$('aiSeatType').value;body.fromOrder=$('aiFromOrder').value;body.toOrder=$('aiToOrder').value;if(!body.runId||!body.seatTypeId||!body.fromOrder||!body.toOrder)return toast('请选择目标车次、区间和席别',true)}$('startAI').disabled=true;try{const job=await api('/api/admin/ai/start',{method:'POST',body:JSON.stringify(body)});activeJob=job.job_id;showJob(job);startPolling();toast('AI 订票任务已启动')}catch(error){toast(error.message,true);$('startAI').disabled=false}}
-function showJob(job){$('jobEmpty').classList.add('hidden');$('jobProgress').classList.remove('hidden');const done=Number(job.completed||0),total=Math.max(1,Number(job.users||1)),pct=Math.round(done/total*100);$('jobPercent').textContent=pct+'%';$('progressRing').style.background=`conic-gradient(var(--blue) ${pct}%,#edf1f5 ${pct}%)`;$('jHeld').textContent=job.held||0;$('jPaid').textContent=job.paid||0;$('jWaited').textContent=job.waitlisted||0;$('jFailed').textContent=job.failed||0;$('jRps').textContent=`${Number(job.rps||0).toFixed(1)} req/s`;$('jobState').className='job-state '+(job.status==='RUNNING'?'running':'done');$('jobState').textContent=job.status==='RUNNING'?'运行中':job.status==='COMPLETED'?'已完成':'异常结束';$('jobErrors').innerHTML=(job.errors||[]).slice(-3).map(e=>`<div>· ${escapeHtml(e)}</div>`).join('');if(job.status!=='RUNNING'){$('startAI').disabled=false;clearInterval(pollTimer);pollTimer=null}}
+async function submitAiJob(body) {
+  const start = $('startAI');
+  if (start.disabled) throw new Error('已有任务正在启动或运行，请等待任务完成');
+  start.disabled = true;
+  try {
+    const job = await api('/api/admin/ai/start', {method:'POST', body:JSON.stringify(body)});
+    activeJob = job.job_id;
+    showJob(job);
+    startPolling();
+    toast('AI 订票任务已启动');
+    return job;
+  } catch (error) {
+    start.disabled = false;
+    throw error;
+  }
+}
+
+async function startAi() {
+  const mode = document.querySelector('[name=aiMode]:checked').value;
+  const body = {
+    mode, users:Number(mode === 'targeted' ? $('aiTargetUsers').value : $('aiUsers').value),
+    concurrency:Number($('aiConcurrency').value), payRate:Number($('aiPayRate').value),
+    waitlist:$('aiWaitlist').checked
+  };
+  if (mode === 'targeted') {
+    Object.assign(body, {runId:$('aiRun').value, seatTypeId:$('aiSeatType').value,
+      fromOrder:$('aiFromOrder').value, toOrder:$('aiToOrder').value});
+    if (!body.runId || !body.seatTypeId || !body.fromOrder || !body.toOrder) {
+      return toast('请选择目标车次、区间和席别', true);
+    }
+  }
+  try {
+    await submitAiJob(body);
+  } catch (error) {
+    toast(error.message, true);
+  }
+}
+function showJob(job){$('startAI').disabled=job.status==='RUNNING';$('jobEmpty').classList.add('hidden');$('jobProgress').classList.remove('hidden');const done=Number(job.completed||0),total=Math.max(1,Number(job.users||1)),pct=Math.round(done/total*100);$('jobPercent').textContent=pct+'%';$('progressRing').style.background=`conic-gradient(var(--blue) ${pct}%,#edf1f5 ${pct}%)`;$('jHeld').textContent=job.held||0;$('jPaid').textContent=job.paid||0;$('jWaited').textContent=job.waitlisted||0;$('jFailed').textContent=job.failed||0;$('jRps').textContent=`${Number(job.rps||0).toFixed(1)} req/s`;$('jobState').className='job-state '+(job.status==='RUNNING'?'running':'done');$('jobState').textContent=job.status==='RUNNING'?'运行中':job.status==='COMPLETED'?'已完成':'异常结束';$('jobErrors').innerHTML=(job.errors||[]).slice(-3).map(e=>`<div>· ${escapeHtml(e)}</div>`).join('');if(job.status!=='RUNNING'){clearInterval(pollTimer);pollTimer=null}}
 function renderJobs(jobs){$('jobRows').innerHTML=jobs.map(j=>`<tr><td>${escapeHtml(j.job_id)}</td><td>${j.mode==='random'?'随机抢票':'定向压测'}</td><td>${j.users} / ${j.concurrency}</td><td>${j.held}</td><td>${j.paid}</td><td>${j.waitlisted}</td><td>${j.failed}</td><td>${Number(j.elapsed||0).toFixed(1)}s</td><td>${j.status==='RUNNING'?statusPill('MATCHING'):statusPill(j.status==='COMPLETED'?'FULFILLED':'CANCELLED')}</td></tr>`).join('')||'<tr><td colspan="9" class="empty-cell">暂无任务记录</td></tr>'}
 async function loadAiOrders(){const params=new URLSearchParams({trainNo:$('aiRefundTrain').value.trim().toUpperCase(),q:$('aiOrderSearch').value});const rows=await api(`/api/admin/ai/orders?${params}`);cache.aiOrders=rows;$('aiOrderRows').innerHTML=rows.map(r=>{const actionable=['PAID','PENDING_PAYMENT'].includes(r.order_status);return `<tr><td class="ai-user-cell"><b>${escapeHtml(r.passenger_name)}</b><small>${escapeHtml(r.username)}</small></td><td>${escapeHtml(r.order_no)}<br><small>#${r.order_id}</small></td><td class="route-cell"><strong>${escapeHtml(r.train_no)}</strong> ${escapeHtml(r.from_station_name)} → ${escapeHtml(r.to_station_name)}</td><td>${escapeHtml(r.seat_type_name)}<br><small>${r.carriage_no||'-'}车 ${escapeHtml(r.seat_no||'待分配')}</small></td><td>¥${r.total_amount}</td><td>${statusPill(r.order_status)}</td><td>${escapeHtml(r.created_at)}</td><td><button class="danger-action" onclick="refundAiOrder(${r.order_id})" ${actionable?'':'disabled'}>${r.order_status==='PENDING_PAYMENT'?'取消预占':'退票'}</button></td></tr>`}).join('')||'<tr><td colspan="8" class="empty-cell">没有匹配的 AI 订单</td></tr>'}
 async function refundAiOrder(orderId){const order=cache.aiOrders.find(r=>String(r.order_id)===String(orderId));if(!order||!['PAID','PENDING_PAYMENT'].includes(order.order_status))return;if(!confirm(`确定要为 AI 乘客“${order.passenger_name}”${order.order_status==='PAID'?'退票':'取消预占'}吗？`))return;try{await api(`/api/admin/ai/orders/${orderId}/refund`,{method:'POST',body:'{}'});toast('AI 订单已处理，库存已经释放');await loadAiOrders()}catch(error){toast(error.message,true)}}

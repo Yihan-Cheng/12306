@@ -5,6 +5,9 @@ $parseErrors = $null
 $startup = [System.Management.Automation.Language.Parser]::ParseFile(
     (Join-Path $repoRoot 'start.ps1'), [ref]$null, [ref]$parseErrors)
 if ($parseErrors) { throw ($parseErrors | Out-String) }
+if ($startup.EndBlock.Statements[-1].Extent.Text -ne 'exit $LASTEXITCODE') {
+    throw 'The launcher must propagate the Python exit code to start.cmd.'
+}
 $functions = $startup.FindAll({ param($node)
     $node -is [System.Management.Automation.Language.FunctionDefinitionAst]
 }, $false)

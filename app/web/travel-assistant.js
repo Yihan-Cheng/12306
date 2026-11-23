@@ -53,7 +53,8 @@ function showTravelPlan(plan) {
   for (const opt of plan.options) {
     const card = append(result, 'article', '', 'assistant-option');
     const kind = opt.legs.length === 1 ? '直达' : '换乘 1 次 · ' + opt.legs[0].to_station_name + '站等候 ' + opt.transfer_minutes + ' 分钟';
-    append(card, 'h3', kind + ' · 每人 ¥' + opt.price +
+    const duration = Number.isInteger(opt.duration_minutes) ? ' · 全程 ' + opt.duration_minutes + ' 分钟' : '';
+    append(card, 'h3', kind + duration + ' · 每人 ¥' + opt.price +
       (plan.people > 1 ? ' · ' + plan.people + '人合计 ¥' + opt.group_price : ''));
     for (const [i, leg] of opt.legs.entries()) {
       append(card, 'p', leg.train_no + '　' + leg.from_station_name + ' ' + timeOnly(leg.departure_at) +

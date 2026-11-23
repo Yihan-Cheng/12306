@@ -37,8 +37,12 @@ function renderAnomalies(report) {
   analysisElement(summary, 'h2', report.source || '数据库检测快照');
   analysisElement(summary, 'small', report.scope + ' · ' + new Date(report.checked_at).toLocaleString('zh-CN'), 'analysis-meta');
   if (report.explanation) {
-    analysisElement(summary, 'h3', report.explanation.mode);
+    const { mode } = report.explanation;
+    const isModel = mode.startsWith('模型');
+    analysisElement(summary, 'h3', isModel ? '模型诊断' : '检测解读');
+    if (isModel) analysisElement(summary, 'span', '模型 API', 'analysis-api-label');
     analysisElement(summary, 'p', report.explanation.text, 'analysis-answer');
+    analysisElement(analysisDetails(summary, '查看解读来源'), 'p', mode, 'analysis-note');
   }
 
   const diagnostics = analysisElement(root, 'div', '', 'analysis-diagnostics');
@@ -96,6 +100,6 @@ async function runAnomalyCheck(explain = false, demo = false) {
     buttons.forEach(b => b.disabled = false);
   }
 }
-$('anomalyForm').onsubmit = event => { event.preventDefault(); runAnomalyCheck(); };
-$('anomalyExplain').onclick = () => { if ($('anomalyForm').reportValidity()) runAnomalyCheck(true); };
+$('anomalyForm').onsubmit = event => { event.preventDefault(); runAnomalyCheck(true); };
+$('anomalyRun').onclick = () => { if ($('anomalyForm').reportValidity()) runAnomalyCheck(); };
 $('anomalyDemo').onclick = () => runAnomalyCheck(false, true);

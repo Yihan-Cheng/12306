@@ -21,8 +21,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 from db import DatabaseError, mysql_rows, neo4j_rows, report_rows
+from ai_booking import BookingPreviewError, booking_preview, check_reserved_seats
 from live_inventory import inventory_snapshot
-from travel_assistant import plan_trip
+from travel_assistant import CLOCK_FORMAT, TRAIN_NO, TRAIN_PREFIXES, plan_trip
 from ops_qa import operations_answer
 from anomalies import BufferSampler, check_anomalies, demo_anomalies
 
@@ -351,9 +352,37 @@ def transfer_search(params: Dict[str, List[str]], *, all_station_pairs=False) ->
     preferred = position(params.get("position", [None])[0])
     fallback = boolean(params.get("fallback", ["true"])[0])
     deadline = params.get("arriveBy", [""])[0]
-    if deadline and not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", deadline):
+    if deadline and not re.fullmatch(CLOCK_FORMAT, deadline):
         raise ApiError("最晚到达时间格式必须为 HH:MM")
     arrival_filter = f"AND replace(left(d.arrival_at,16),' ','T') <= '{service_date}T{deadline}'" if deadline else ""
+    # Apply route constraints before the graph's candidate limit. Price and
+    # seat checks still use current MySQL fares and inventory after validation.
+    route_filters = []
+    duration_filter = ""
+    candidate_order = "arrival"
+    if all_station_pairs:
+        after = params.get("departAfter", [""])[0]
+        before = params.get("departBefore", [""])[0]
+        if after or before:
+            if not all(re.fullmatch(CLOCK_FORMAT, t) for t in (after or "00:00", before or "23:59")):
+                raise ApiError("出发时间格式必须为 HH:MM")
+            departure = "replace(left(a.departure_at,16),' ','T')"
+            route_filters.append(f"{departure} >= '{service_date}T{after or '00:00'}'")
+            route_filters.append(f"{departure} <= '{service_date}T{before or '23:59'}'")
+        train_no = params.get("trainNo", [""])[0]
+        if train_no:
+            if not re.fullmatch(TRAIN_NO, train_no):
+                raise ApiError("车次号格式不正确")
+            route_filters.append(f"first.train_no = '{train_no}'")
+        prefixes = TRAIN_PREFIXES.get(params.get("trainCategory", [""])[0])
+        if prefixes:
+            route_filters.extend(f"left({leg}.train_no,1) IN {list(prefixes)}" for leg in ("first", "second"))
+        duration = params.get("maxDuration", [""])[0]
+        if duration:
+            duration_filter = f"AND tripSeconds <= {integer(duration, '全程耗时上限', 1, 99999) * 60}"
+        if params.get("sort", [""])[0] == "duration":
+            candidate_order = "tripSeconds, arrival"
+    route_filter = "".join(f" AND {condition}" for condition in route_filters)
     cypher = f"""
     MATCH (origin:Station), (destination:Station)
     WHERE origin.station_id IN {origins} AND destination.station_id IN {destinations} AND origin<>destination
@@ -364,14 +393,16 @@ def transfer_search(params: Dict[str, List[str]], *, all_station_pairs=False) ->
     MATCH (second)-[d:CALLS_AT]->(destination)
     WHERE second<>first AND d.station_order>c.station_order
       AND b.arrival_at IS NOT NULL AND c.departure_at IS NOT NULL
-      AND c.departure_at>b.arrival_at AND d.arrival_at IS NOT NULL {arrival_filter}
+      AND c.departure_at>b.arrival_at AND a.departure_at IS NOT NULL
+      AND d.arrival_at IS NOT NULL {arrival_filter}{route_filter}
     WITH origin,destination,first,second,transfer,d,
-         duration.inSeconds(localdatetime(replace(b.arrival_at,' ','T')),localdatetime(replace(c.departure_at,' ','T'))).seconds AS waitSeconds
-    WHERE waitSeconds >= 900 AND waitSeconds <= 14400
+         duration.inSeconds(localdatetime(replace(b.arrival_at,' ','T')),localdatetime(replace(c.departure_at,' ','T'))).seconds AS waitSeconds,
+         duration.inSeconds(localdatetime(replace(a.departure_at,' ','T')),localdatetime(replace(d.arrival_at,' ','T'))).seconds AS tripSeconds
+    WHERE waitSeconds >= 900 AND waitSeconds <= 14400 {duration_filter}
     WITH DISTINCT origin.station_id AS originId, destination.station_id AS destinationId, first.run_id AS firstRunId,
            second.run_id AS secondRunId,
-           transfer.station_id AS transferStationId, d.arrival_at AS arrival
-    ORDER BY arrival, firstRunId, secondRunId, transferStationId, originId, destinationId
+           transfer.station_id AS transferStationId, d.arrival_at AS arrival, tripSeconds
+    ORDER BY {candidate_order}, firstRunId, secondRunId, transferStationId, originId, destinationId
     LIMIT 80
     RETURN originId,destinationId,firstRunId,secondRunId,transferStationId
     """
@@ -1366,6 +1397,17 @@ class Handler(SimpleHTTPRequestHandler):
                     raise ApiError("AI 任务不存在", 404)
                 job = public_ai_job(AI_JOBS[job_id])
             self.send_json(job)
+        elif method == "POST" and parsed.path == "/api/admin/ai/preview":
+            body = json_body(self)
+            question = body.get("question") if isinstance(body, dict) else None
+            if not isinstance(question, str) or not 1 <= len(question.strip()) <= 500:
+                raise ApiError("请输入 1 至 500 字的查票或压测需求")
+            try:
+                preview = booking_preview(question.strip(), body.get("serviceDate"), report_rows)
+            except BookingPreviewError as exc:
+                self.send_json({"clarify": str(exc)})
+            else:
+                self.send_json(preview)
         elif method == "POST" and parsed.path == "/api/admin/ai/start":
             body = json_body(self)
             mode = str(body.get("mode", "random"))
@@ -1385,6 +1427,15 @@ class Handler(SimpleHTTPRequestHandler):
                 config["to_order"] = integer(body.get("toOrder"), "toOrder", 2, 64)
                 if config["from_order"] >= config["to_order"]:
                     raise ApiError("下车站必须位于上车站之后")
+            if "reserveSeats" in body:
+                reserve = integer(body["reserveSeats"], "reserveSeats", 0, 500)
+                if mode != "targeted" or config["waitlist"]:
+                    raise ApiError("预留余票仅适用于不开启候补的定向任务")
+                try:
+                    check_reserved_seats(report_rows, config["run_id"], config["from_order"], config["to_order"],
+                                         config["seat_type_id"], config["users"], reserve)
+                except BookingPreviewError as exc:
+                    raise ApiError(str(exc), 409) from exc
             job_id = uuid.uuid4().hex[:8].upper()
             job = {
                 "job_id": job_id, "mode": mode, "users": config["users"],

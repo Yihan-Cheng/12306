@@ -6,7 +6,8 @@ function renderOpsReport(report, question) {
   opsResult.replaceChildren();
   const mode = report.mode || '';
   const timestamp = report.checked_at && new Date(report.checked_at).toLocaleString('zh-CN');
-  const metadata = [report.scope, mode, timestamp].filter(Boolean);
+  if (!report.clarify && mode.startsWith('模型')) analysisElement(opsResult, 'span', mode, 'analysis-api-label');
+  const metadata = [report.scope, timestamp].filter(Boolean);
   if (metadata.length) analysisElement(opsResult, 'small', metadata.join(' · '), 'analysis-meta');
   analysisElement(opsResult, 'h2', report.clarify ? '请补充查询条件' : report.title);
   if (question !== report.title) analysisElement(opsResult, 'p', question, 'analysis-question');
@@ -14,7 +15,7 @@ function renderOpsReport(report, question) {
   if (report.clarify) return;
 
   if (report.rows.length) {
-    analysisTable(opsResult, report.columns, report.rows, '无在售产品');
+    analysisTable(opsResult, report.columns, report.rows, report.empty_value ?? '无在售产品');
   } else {
     analysisElement(opsResult, 'p', '结果表为空', 'analysis-empty');
   }
@@ -22,6 +23,7 @@ function renderOpsReport(report, question) {
   const evidence = analysisDetails(opsResult, '统计口径');
   analysisElement(evidence, 'p', report.definition);
   const query = analysisDetails(opsResult, '查看执行的 SQL 与绑定参数');
+  if (mode && !mode.startsWith('模型')) analysisElement(query, 'p', '查询方式　' + mode, 'analysis-note');
   analysisElement(query, 'pre', report.sql);
   analysisElement(query, 'p', '绑定参数　' + JSON.stringify(report.params));
 }

@@ -77,9 +77,9 @@
               <div><span class="assistant-kicker">AI 出行助手</span><h2 id="assistantTitle">我该怎么买？</h2></div>
             </div>
             <form id="assistantForm">
-              <label for="travelQuestion">告诉出行助手你的起终点、人数和到达时间</label>
+              <label for="travelQuestion">告诉出行助手你的起终点、人数和出发时间，也可以加上预算、车次或全程用时</label>
               <div class="assistant-input">
-                <textarea id="travelQuestion" rows="2" maxlength="500" required placeholder="两个人从南通西到上海虹桥，下午3点前到，优先直达，可以换乘一次"></textarea>
+                <textarea id="travelQuestion" rows="2" maxlength="500" required placeholder="两个人从南通西到上海虹桥，09:00到14:00出发，人均预算150元，下午3点前到，可以换乘一次"></textarea>
                 <button id="askAssistant" type="submit">规划行程 →</button>
               </div>
               <button id="assistantExample" class="assistant-example" type="button">试用上面的示例</button>
@@ -116,6 +116,6 @@
   <div id="noticeModal" class="modal" aria-hidden="true"><div class="modal-card notice-modal-card"><div class="notice-icon">!</div><h2 id="noticeTitle">座位分配提示</h2><p id="noticeText"></p><button id="noticeOkay" class="primary-button">我知道了</button></div></div>
   <div id="toast" class="toast"></div>
   <script src="/app.js?v=6"></script>
-  <script src="/travel-assistant.js?v=2"></script>
+  <script src="/travel-assistant.js?v=3"></script>
 </body>
 </html>

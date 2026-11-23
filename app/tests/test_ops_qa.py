@@ -66,6 +66,7 @@ class OperationsQuestions(unittest.TestCase):
             self.assertEqual(self.read.call_args.args, (good, ["2026-10-14"]))
             self.read.reset_mock()
             self.assertIn("clarify", self.ask("乘客明细"))
-            self.read.assert_not_called()
+            self.read.assert_called_once()
+            self.assertIn("information_schema.COLUMNS", self.read.call_args.args[0])
             model.side_effect = TimeoutError
             self.assertIn("暂不可用", self.ask("缓冲请求状态分布")["mode"])

@@ -1,6 +1,6 @@
 # AI 功能完整 API 输入输出
 
-本文件记录本次重新执行的真实百炼模型请求与响应，覆盖乘客规划、四类运营报表、两种澄清、正常及异常证据解释。每个案例独立发起一次模型请求，保留完整请求体、响应 JSON、工具调用 ID、usage 和 arguments 字符串。仅认证密钥被隐藏，JSON 调整缩进。
+本文件保留 2026 年 11 月 18 日采集的真实百炼请求与响应，覆盖乘客规划、四类运营报表、澄清和异常解释。每个历史案例独立发起一次模型请求，保留完整请求体、响应 JSON、工具调用 ID、usage 和 arguments 字符串。认证密钥已隐藏，JSON 调整缩进。后续接口变化另列在「当前接口增量」。
 
 - 采集日期为2026年11月18日，时区为 Asia/Shanghai。
 - 模型为 deepseek-v4.1-flash-1017，服务为阿里云百炼兼容接口。
@@ -13,9 +13,78 @@
 | 功能 | 项目入口 | 外部模型工具 |
 |---|---|---|
 | 乘客行程规划 | POST /api/travel-assistant | plan_trip |
-| 运营问答 | POST /api/admin/operations/query | query_operations |
+| 运营问答 | POST /api/admin/operations/query | `query_operations` 处理常用报表，`plan_operations_query` 处理组合分析 |
 | 异常解释 | POST /api/admin/anomalies/check，explain=true | explain_anomalies |
-| AI 订票员 | 管理端模拟订票压测 | 当前按规则模拟乘客，无外部模型调用 |
+| AI 订票员 | POST /api/admin/ai/preview | `plan_ai_booking` 解析查票或压测需求 |
+
+## 当前接口增量
+
+下面的 JSON 按当前工具定义编写，便于理解字段和验证接口。原始联调报文仍见下方历史案例。
+
+### 乘客行程助手扩展字段
+
+`plan_trip` 新增首段出发时间上下限 `depart_after`、`depart_before`，人均预算 `max_fare`、全部乘客总预算 `max_group_fare`，指定车次 `train_no`、车型 `train_category` 和全程分钟上限 `max_duration_minutes`。`sort` 增加 `duration`。有换乘时指定车次约束首段，车型约束每段。时间、预算和时长由后端复核。
+
+### 运营组合分析
+
+向 `POST /api/admin/operations/query` 发送以下请求。
+
+```json
+{
+  "question": "比较 G8359 和 G1304 的已支付订单数，按车次和席别分组",
+  "serviceDate": "2026-10-14"
+}
+```
+
+模型接收候选报表视图的实际字段、类型与指标口径，并通过 `plan_operations_query` 返回查询计划。以下是该问题对应的计划示例。
+
+```json
+{
+  "metric": "paid_orders",
+  "group_by": ["train_no", "seat_type"],
+  "filters": {"origin": [], "destination": [], "seat_type": [], "status": []},
+  "sort": "desc",
+  "limit": 20,
+  "clarify": ""
+}
+```
+
+日期和车次由后端提取绑定。`paid_orders` 自带 `PAID` 条件，订单统计按订单号去重。后端返回结果表、SQL 和参数。组合分析发送本轮问题和视图元数据，查询结果留在后端用于生成页面上的结论。
+
+### AI 订票员的查票和压测预览
+
+向 `POST /api/admin/ai/preview` 发送以下请求。
+
+```json
+{
+  "question": "让 10 名模拟乘客买 G8359 盐城到义乌二等座，并发 2，全部自动支付，无票不候补",
+  "serviceDate": "2026-10-14"
+}
+```
+
+`plan_ai_booking` 的解码参数示例。
+
+```json
+{
+  "intent": "targeted",
+  "train_no": "G8359",
+  "origin": "盐城",
+  "destination": "义乌",
+  "seat_type": "二等座",
+  "users": 10,
+  "reserve_seats": null,
+  "concurrency": 2,
+  "pay_rate": 100,
+  "waitlist": false,
+  "clarify": ""
+}
+```
+
+后端执行只读查询，返回 `target`、`task`、`sql`、`params`。`availability` 只查余票，`task` 为 `null`。`targeted` 会返回经数据库核对的区间和可启动参数。`random` 使用全库在售产品，`target` 为 `null`。若显式指定预留票数，则按查询时余票计算任务人数，并在启动时再核对。确认按钮调用 `POST /api/admin/ai/start`，该接口按现有任务流程创建模拟订单。
+
+### 异常检测按钮与模型调用
+
+「检测并解释」发送 `explain: true`，有模型配置时会提交库存汇总、缓冲采样和规则说明生成诊断。「运行检测」发送 `explain: false`，返回检测证据。「查看模拟异常」读取 `GET /api/admin/anomalies/demo` 的独立样本。历史案例 10 展示的是将模拟证据单独送入模型后的报文。
 
 ## 案例目录
 
@@ -2481,6 +2550,6 @@ HTTP状态为200，耗时18.5秒。
 
 ## 读取本记录时的口径
 
-乘客模型返回结构化查询条件，车次、票价和余票由后端数据库查询生成。运营模型收到预定义报表口径及完整 SQL 候选，后端校验模板后绑定日期和车次执行。异常状态由程序规则判定，模型基于汇总与采样生成解释，解释中的原因推测需人工验证。
+在以上历史案例中，乘客模型返回结构化查询条件，车次、票价和余票由后端数据库查询生成。运营模型收到预定义报表口径及完整 SQL 候选，后端校验模板后绑定日期和车次执行。异常状态由程序规则判定，模型基于汇总与采样生成解释，解释中的原因推测需人工验证。
 
 本记录中的退款订单、空候补结果和缓冲样本反映采集时的演示库。checked_at 保留原始UTC格式，展示时可换算为北京时间。所有提示词、工具定义、模型 JSON 和后端结果均完整保留，模拟样本在对应案例中明确标记。

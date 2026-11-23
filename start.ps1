@@ -15,6 +15,44 @@ function Write-Step([string]$Message) {
     Write-Host "`n==> $Message" -ForegroundColor Cyan
 }
 
+function Find-DockerDesktop([string]$DockerCommandPath) {
+    $installRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $DockerCommandPath))
+    $candidates = @(
+        (Join-Path $installRoot 'Docker Desktop.exe'),
+        (Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\Docker Desktop.exe')
+    )
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) { return $candidate }
+    }
+    throw 'Docker Desktop executable was not found. Open Docker Desktop and retry.'
+}
+
+function Test-PythonDependencies([string]$PythonExe) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $PythonExe -c 'import pymysql, neo4j, cryptography' *> $null
+        return $LASTEXITCODE -eq 0
+    } finally { $ErrorActionPreference = $previous }
+}
+
+function Initialize-PythonEnvironment([string]$PythonExe) {
+    if (Test-PythonDependencies $PythonExe) { return $PythonExe }
+    $venvRoot = Join-Path $repoRoot '.venv'
+    $venvPython = Join-Path $venvRoot 'Scripts\python.exe'
+    if (-not (Test-Path -LiteralPath $venvPython)) {
+        Write-Host '    Creating project Python environment (.venv)...' -ForegroundColor Yellow
+        & $PythonExe -m venv $venvRoot | Out-Host
+        if ($LASTEXITCODE) { throw 'Failed to create the project Python environment.' }
+    }
+    Write-Host '    Installing app/requirements.txt into .venv...' -ForegroundColor Yellow
+    & $venvPython -m pip install --disable-pip-version-check -r (Join-Path $repoRoot 'app\requirements.txt') | Out-Host
+    if ($LASTEXITCODE) { throw 'Python dependency installation failed. Check the network and retry start.cmd.' }
+    if (-not (Test-PythonDependencies $venvPython)) { throw 'Python dependencies are unavailable after installation.' }
+    return $venvPython
+}
+
 function Test-DockerReady {
     $previous = $ErrorActionPreference
     $ErrorActionPreference = 'SilentlyContinue'
@@ -144,10 +182,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw 'docker was not found. Install Docker Desktop first.'
 }
 if (-not (Test-DockerReady)) {
-    $dockerDesktop = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-    if (-not (Test-Path -LiteralPath $dockerDesktop)) {
-        throw 'Docker Desktop is not running and its default executable was not found.'
-    }
+    $dockerDesktop = Find-DockerDesktop (Get-Command docker).Source
     Write-Host '    Starting Docker Desktop in the background...' -ForegroundColor Yellow
     Start-Process -FilePath $dockerDesktop -WindowStyle Hidden
     $ready = $false
@@ -248,6 +283,8 @@ Repair-MissingRoutines
 # Idempotent views and role grants also repair an interrupted V020 installation.
 Apply-Migration (Join-Path $repoRoot 'database\migrations\V020__operations_reporting.sql')
 Apply-Migration (Join-Path $repoRoot 'database\migrations\V021__anomaly_evidence.sql')
+Apply-Migration (Join-Path $repoRoot 'database\migrations\V022__operations_analysis.sql')
+Apply-Migration (Join-Path $repoRoot 'database\migrations\V023__ai_booking_analysis.sql')
 
 if (-not $SkipGraphSync) {
     Write-Step 'Checking Neo4j query graph'
@@ -264,6 +301,7 @@ if (-not $SkipGraphSync) {
 
 Write-Step 'Finding Python 3'
 $pythonCandidates = @(
+    (Join-Path $repoRoot '.venv\Scripts\python.exe'),
     $(if ($env:CONDA_PREFIX) { Join-Path $env:CONDA_PREFIX 'python.exe' }),
     'D:\anaconda\python.exe',
     (Join-Path $env:USERPROFILE '.local\bin\python3.12.exe'),
@@ -284,8 +322,6 @@ if (-not $pythonExe) {
 if (-not $pythonExe) {
     throw 'Python 3 was not found. Install Python 3.11+ and enable Add Python to PATH.'
 }
-Write-Host "    Using: $pythonExe" -ForegroundColor Green
-
 $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($listener) {
     try {
@@ -298,6 +334,10 @@ if ($listener) {
     } catch {}
     throw "Port $Port is occupied. Use .\start.ps1 -Port 8090 to choose another port."
 }
+
+Write-Step 'Checking Python dependencies'
+$pythonExe = Initialize-PythonEnvironment $pythonExe
+Write-Host "    Using: $pythonExe" -ForegroundColor Green
 
 $env:CR12306_PORT = [string]$Port
 $env:CR12306_MYSQL_CONTAINER = 'mysql84'
@@ -336,3 +376,4 @@ if ($AdminPassword) {
 Write-Host 'Press Ctrl+C to stop the service.' -ForegroundColor DarkGray
 Write-Step 'Starting CR12306 service'
 & $pythonExe (Join-Path $repoRoot 'app\server.py')
+exit $LASTEXITCODE

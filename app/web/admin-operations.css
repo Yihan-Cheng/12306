@@ -74,6 +74,13 @@ html { scrollbar-gutter: stable; }
 }
 .analysis-button span { margin-left: 8px; }
 .analysis-button.primary { background: #4358b6; color: #fff; border-color: #4358b6; }
+.analysis-api-button { display: inline-flex; align-items: center; gap: 8px; }
+.analysis-api-label {
+  display: inline-block; padding: 3px 6px; border-radius: 5px; white-space: nowrap;
+  background: #edf0ff; color: #35489f; font-size: 11px; font-weight: 750; line-height: 1.35;
+}
+.analysis-api-button .analysis-api-label { margin-left: 0; background: #e7ebff; }
+.analysis-result > .analysis-api-label { margin-bottom: 8px; }
 .analysis-button:hover { border-color: #899ddd; }
 .analysis-button.primary:hover { background: #35489f; }
 .analysis-button:disabled, .analysis-prompts button:disabled { opacity: .6; cursor: wait; }
@@ -145,6 +152,13 @@ html { scrollbar-gutter: stable; }
 .split-layout { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
 .ai-layout { grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); }
 .dashboard-grid > *, .split-layout > *, .ai-layout > * { min-width: 0; }
+.ai-config-stack { display: grid; gap: 18px; }
+.ai-preview-examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+.ai-preview-examples button { min-height: 34px; font-size: 13px; }
+.ai-preview-actions { justify-content: space-between; }
+.ai-manual summary { cursor: pointer; padding: 16px 20px; color: #334a80; font-weight: 650; }
+.ai-manual:not([open]) { padding-bottom: 0; }
+.ai-manual[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 16px; }
 .card-head { gap: 10px; flex-wrap: wrap; min-height: 64px; padding: 16px 20px; }
 .card-head h2 { font-size: 16px; }
 .card-head p { font-size: 13px; line-height: 1.5; }

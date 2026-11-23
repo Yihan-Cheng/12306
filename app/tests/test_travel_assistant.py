@@ -83,7 +83,8 @@ class TravelTests(unittest.TestCase):
 
     def test_unclear_requests(self):
         for question in ("怎么买", "从南通西到上海虹桥 六个人", "明天从南通西到上海虹桥",
-                         "10月15日从南通西到上海虹桥", "从南通西到上海虹桥预算30元"):
+                         "10月15日从南通西到上海虹桥", "从南通西到上海虹桥，两个人要连座",
+                         "从南通西到上海虹桥，18点到9点出发", "从南通西到上海虹桥，只坐动车，指定G8359"):
             self.assertFalse(self.plan(question)["options"])
         self.direct.assert_not_called()
 
@@ -92,6 +93,46 @@ class TravelTests(unittest.TestCase):
                                     dict(DIRECT, train_no="G2", run_id=2, amount="30", arrival_at="2026-10-14 15:00:00")]
         options = self.plan("从南通西到上海虹桥，最便宜")["options"]
         self.assertEqual([o["price"] for o in options], ["30", "45.10"])
+
+    def test_departure_budget_train_and_shortest_duration(self):
+        self.direct.return_value = [
+            DIRECT,
+            dict(DIRECT, train_no="G2", run_id=2, arrival_at="2026-10-14 14:00:00"),
+            dict(DIRECT, train_no="D2", run_id=3, arrival_at="2026-10-14 13:30:00"),
+            dict(DIRECT, train_no="G3", run_id=4, departure_at="2026-10-14 11:05:00",
+                 arrival_at="2026-10-14 11:30:00"),
+            dict(DIRECT, train_no="G4", run_id=5, amount="50.01", arrival_at="2026-10-14 13:30:00"),
+            dict(DIRECT, train_no="G5", run_id=6, amount="46.00", arrival_at="2026-10-14 13:30:00"),
+        ]
+        result = self.plan("两个人从南通西到上海虹桥，12:00到14:00出发，只坐高铁，"
+                           "人均预算50元，总预算91元，全程不超过90分钟，用时最短")
+        self.assertEqual([o["legs"][0]["train_no"] for o in result["options"]], ["G2", "G8359"])
+        self.assertEqual([o["duration_minutes"] for o in result["options"]], [55, 85])
+        self.assertIn("按全程用时排序", result["ranking"])
+        result = self.plan("从南通西到上海虹桥，指定g8359，下午1点后出发，14点前出发")
+        self.assertEqual([o["legs"][0]["train_no"] for o in result["options"]], ["G8359"])
+
+    def test_transfer_uses_combined_price_elapsed_time_and_first_train(self):
+        self.direct.return_value = []
+        candidate = dict(origin_id=1, transfer_station_id=3, destination_id=2,
+                         transfer_minutes=20, can_fulfill=1)
+        for prefix, train, departure, arrival in (("first", "G8359", "13:05", "13:35"),
+                                                   ("second", "G18", "13:55", "14:30")):
+            for field in ("amount", "available_seats", "seat_type_id", "seat_type_name"):
+                candidate[f"{prefix}_{field}"] = DIRECT[field]
+            candidate.update({f"{prefix}_train_no": train, f"{prefix}_run_id": int(train[1:]),
+                              f"{prefix}_departure_at": f"{travel.DEMO_DATE} {departure}:00",
+                              f"{prefix}_arrival_at": f"{travel.DEMO_DATE} {arrival}:00"})
+        self.transfer.return_value = [candidate, dict(candidate, second_train_no="D18")]
+        q = "两个人从南通西到上海虹桥，允许一次换乘，首段G8359，只坐高铁，13点后出发，"
+        result = self.plan(q + "人均预算91元，总预算181元，全程不超过85分钟")
+        self.assertEqual(len(result["options"]), 1)
+        self.assertEqual(result["options"][0]["duration_minutes"], 85)
+        self.assertEqual(result["options"][0]["group_price"], "180.40")
+        self.assertEqual(self.transfer.call_args.args[0]["departAfter"], ["13:00"])
+        self.assertFalse(self.plan(q + "总预算180元")["options"])
+        self.assertFalse(self.plan(q + "全程不超过84分钟")["options"])
+        self.assertFalse(self.plan(q + "人均预算90元")["options"])
 
     def test_model_tool_call(self):
         intent = travel.local_intent(travel.EXAMPLE, STATIONS)
