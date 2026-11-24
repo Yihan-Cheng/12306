@@ -94,6 +94,10 @@ html { scrollbar-gutter: stable; }
 .analysis-prompts strong, .analysis-prompts small { display: block; }
 .analysis-prompts strong { font-size: 13px; }
 .analysis-prompts small { margin-top: 3px; font-size: 12px; color: #506178; }
+.ops-field-guide { margin-top: 14px; color: #425371; font-size: 13px; }
+.ops-field-guide summary { cursor: pointer; color: #334a80; font-weight: 650; }
+.ops-field-guide dt { font-weight: 650; margin-top: 8px; }
+.ops-field-guide dd { margin: 3px 0 0; line-height: 1.5; }
 .analysis-entry {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
   padding: 14px 16px; border-radius: 10px; background: #f8faff; border: 1px solid #dce4f2;
@@ -113,6 +117,7 @@ html { scrollbar-gutter: stable; }
 .analysis-question { color: #52627b; font-size: 14px; }
 .analysis-result details { margin-top: 16px; border: 1px solid #dfe5ef; padding: 11px 13px; border-radius: 8px; }
 .analysis-result summary { cursor: pointer; color: #334a80; font-weight: 650; }
+.anomaly-evidence h4 { margin: 14px 0 4px; }
 .analysis-result pre {
   padding: 13px; border-radius: 7px; background: #14223b; color: #e3ebff;
   white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.5;

@@ -109,7 +109,7 @@ def select_report(question, candidates, known, day):
                   f"页面已选择运营日 {day}，问题中明确的日期也已由后端处理。"
                   "车次和日期均由后端提取并绑定，SQL保持%s占位符，日期已确定，无需追问日期。"
                   "保留 %s 绑定参数、列、分组、排序、LIMIT。不得丢弃条件或回答其他问题。"
-                  "若口径不清、包含无法支持的筛选或指标，sql 留空，clarify 给出中文说明。\n" + catalog)
+                  "若口径不清、包含无法支持的筛选或指标，sql 留空，clarify 用一到两句完整中文说明。\n" + catalog)
         schema = {"name": "query_operations", "description": "生成只读报表 SQL 或提出澄清",
                   "parameters": {"type": "object", "properties": {"sql": {"type": "string"}, "clarify": {"type": "string"}},
                                  "required": ["sql", "clarify"], "additionalProperties": False}}
@@ -117,8 +117,8 @@ def select_report(question, candidates, known, day):
             reply = call_tool(question, key, prompt, schema)
             if not isinstance(reply, dict) or not isinstance(reply.get("sql"), str) or not isinstance(reply.get("clarify"), str):
                 raise ValueError("invalid result")
-            if reply["clarify"]:
-                return None, "模型 NL2SQL", reply["clarify"][:200]
+            if reply["clarify"].strip():
+                return None, "模型 NL2SQL", reply["clarify"].strip()
             normalized = " ".join(reply["sql"].strip().removesuffix(";").split()).casefold()
             for k, sql in candidates.items():
                 if normalized == " ".join(sql.split()).casefold() and (known is None or k == known):

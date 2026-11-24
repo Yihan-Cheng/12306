@@ -70,3 +70,11 @@ class OperationsQuestions(unittest.TestCase):
             self.assertIn("information_schema.COLUMNS", self.read.call_args.args[0])
             model.side_effect = TimeoutError
             self.assertIn("暂不可用", self.ask("缓冲请求状态分布")["mode"])
+
+    def test_template_model_clarification_preserves_long_complete_text(self):
+        message = "该条件需要更明确的统计口径。" * 16 + "请确认要统计的指标。"
+        self.assertGreater(len(message), 200)
+        with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only"}), patch.object(ops, "call_tool") as model:
+            model.return_value = {"sql": "", "clarify": message}
+            self.assertEqual(self.ask("订单状态分布")["clarify"], message)
+        self.read.assert_not_called()

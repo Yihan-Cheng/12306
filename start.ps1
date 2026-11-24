@@ -285,6 +285,7 @@ Apply-Migration (Join-Path $repoRoot 'database\migrations\V020__operations_repor
 Apply-Migration (Join-Path $repoRoot 'database\migrations\V021__anomaly_evidence.sql')
 Apply-Migration (Join-Path $repoRoot 'database\migrations\V022__operations_analysis.sql')
 Apply-Migration (Join-Path $repoRoot 'database\migrations\V023__ai_booking_analysis.sql')
+Apply-Migration (Join-Path $repoRoot 'database\migrations\V024__operations_analysis_dimensions.sql')
 
 if (-not $SkipGraphSync) {
     Write-Step 'Checking Neo4j query graph'

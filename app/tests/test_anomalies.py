@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import unittest
@@ -76,3 +77,19 @@ class AnomalyTests(unittest.TestCase):
         seen=[]
         a.check_anomalies("2026-10-14","g8359",lambda *args:seen.append(args) or [],a.BufferSampler())
         self.assertEqual(seen[0][1],["2026-10-14","G8359"])
+
+    def test_model_evidence_distinguishes_full_scan_from_limited_findings(self):
+        report = a.demo_anomalies()
+        report["inventory"] = a.inventory_result([seat(seat_id=i, occupied_mask=1) for i in range(55)])
+        with patch.dict(os.environ, {"CR12306_AI_API_KEY": "test-only", "CR12306_AI_MODEL": "test-model"}), \
+                patch.object(a, "call_tool", return_value={"explanation": "库存位图存在差异，建议核对占座记录。"}) as model:
+            explanation = a.explain_report(report)
+        payload, _, prompt, _ = model.call_args.args
+        evidence = json.loads(payload)
+        self.assertEqual(explanation["model"], "test-model")
+        self.assertEqual(evidence["inventory"]["checked_seats"], 55)
+        self.assertEqual(evidence["inventory"]["mask_mismatch_count"], 55)
+        self.assertEqual(len(report["inventory"]["findings"]), 50)
+        self.assertNotIn("findings", evidence["inventory"])
+        self.assertIn("全部现有运行座位", prompt)
+        self.assertIn("最近3次有效样本", prompt)

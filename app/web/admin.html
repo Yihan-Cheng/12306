@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css?v=3"><link rel="stylesheet" href="/admin-live.css?v=2"><link rel="stylesheet" href="/admin-operations.css?v=6"></head>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1729"><title>RailFlow Control · 运营控制台</title><link rel="stylesheet" href="/admin.css?v=3"><link rel="stylesheet" href="/admin-live.css?v=2"><link rel="stylesheet" href="/admin-operations.css?v=8"></head>
 <body>
 <aside class="sidebar">
   <a class="admin-brand" href="/admin.html"><span>R</span><div><b>RailFlow</b><small>运营控制中心</small></div></a>
@@ -66,8 +66,18 @@
           <button type="button" data-question="订单状态分布"><span><strong>订单状态</strong><small>按当前状态统计订单数</small></span><span aria-hidden="true">↗</span></button>
           <button type="button" data-question="G8359 已支付订单有多少笔？"><span><strong>支付订单</strong><small>查询 G8359 的已支付订单数</small></span><span aria-hidden="true">↗</span></button>
           <button type="button" data-question="缓冲请求状态分布"><span><strong>缓冲请求</strong><small>查看队列请求的当前状态分布</small></span><span aria-hidden="true">↗</span></button>
-          <button type="button" data-question="比较 G8359 和 G1304 的已支付订单数，按车次和席别分组"><span><strong>多车次订单对比</strong><small>按车次与席别统计已支付订单</small></span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-question="按出发城市和客群统计订单数，区分 AI 订票员和其他乘客"><span><strong>城市与客群</strong><small>对比各城市的模拟订票与其他订单</small></span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-question="G8359 按车厢和席别统计全程空闲座位数"><span><strong>车厢库存</strong><small>核对各车厢全程空闲座位</small></span><span aria-hidden="true">↗</span></button>
         </div>
+        <details class="ops-field-guide">
+          <summary>查看可查询字段与指标</summary>
+          <dl>
+            <dt>订单</dt><dd>出发和到达城市、车型、客群、订单来源、订单状态、票面金额</dd>
+            <dt>候补</dt><dd>区间、席别、公平保护、重试次数、跳过次数、兑现率</dd>
+            <dt>订票缓冲</dt><dd>处理状态、领取次数分组、失败分类、失败率、平均耗时</dd>
+            <dt>全程库存</dt><dd>车型、车厢、席别、售票状态、运行座位数、全程空闲座位数和占用比例</dd>
+          </dl>
+        </details>
       </section>
     </div>
     <section id="opsResult" class="admin-card analysis-card analysis-result" hidden aria-live="polite"></section>
@@ -178,4 +188,4 @@
     <section class="admin-card history-card"><div class="card-head"><div><h2>实验任务记录</h2><p>当前服务进程内的 AI 压测历史</p></div></div><div class="table-scroll"><table><thead><tr><th>任务 ID</th><th>模式</th><th>规模 / 并发</th><th>占座</th><th>支付</th><th>候补</th><th>失败</th><th>耗时</th><th>状态</th></tr></thead><tbody id="jobRows"><tr><td colspan="9" class="empty-cell">暂无任务记录</td></tr></tbody></table></div></section>
     <section class="admin-card ai-orders-card"><div class="card-head"><div><h2>AI 用户订单与退票</h2><p>精确操作某位 AI 乘客，或按指定区间随机批量释放席位</p></div><div class="ai-order-filters"><input id="aiRefundTrain" aria-label="按完整车次号搜索 AI 订单" list="aiRunList" autocomplete="off" placeholder="完整车次号"><input id="aiOrderSearch" aria-label="搜索 AI 乘客" placeholder="搜索 AI 乘客"><button id="refreshAiOrders" class="analysis-button">查询</button></div></div><div class="batch-refund"><div><b>按区间随机批量退票</b><span>选择完整车次及上下车站，只处理完全匹配该区间的 AI 订单</span></div><input id="batchRefundTrain" aria-label="批量退票车次" list="aiRunList" autocomplete="off" placeholder="完整车次号，如 G8359"><select id="batchRefundFrom" aria-label="批量退票上车站"><option value="">先输入车次</option></select><select id="batchRefundTo" aria-label="批量退票下车站"><option value="">先选择上车站</option></select><label>随机人数<input id="batchRefundCount" type="number" min="1" max="100" value="5"></label><button id="batchRefundButton">执行批量退票</button></div><div class="table-scroll"><table><thead><tr><th>AI 乘客</th><th>订单号</th><th>车次 / 区间</th><th>席位</th><th>金额</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="aiOrderRows"><tr><td colspan="8" class="empty-cell">进入 AI 订票员后自动读取</td></tr></tbody></table></div></section>
   </section>
-</main><div id="adminToast" class="admin-toast"></div><script src="/admin.js?v=9"></script><script src="/admin-analysis.js"></script><script src="/admin-operations.js?v=4"></script><script src="/admin-anomalies.js?v=3"></script><script src="/admin-ai-booking.js?v=2"></script></body></html>
+</main><div id="adminToast" class="admin-toast"></div><script src="/admin.js?v=10"></script><script src="/admin-analysis.js"></script><script src="/admin-operations.js?v=4"></script><script src="/admin-anomalies.js?v=4"></script><script src="/admin-ai-booking.js?v=2"></script></body></html>

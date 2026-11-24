@@ -153,12 +153,14 @@ def position(value: Any) -> Optional[str]:
     return parsed
 
 
-def json_body(handler: SimpleHTTPRequestHandler) -> Dict[str, Any]:
-    length = integer(handler.headers.get("Content-Length", "0"), "Content-Length", 0, 100_000)
+def json_body(handler: 'Handler') -> Dict[str, Any]:
     try:
-        return json.loads(handler.rfile.read(length).decode("utf-8"))
+        body = json.loads(handler.post_body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
-        raise ApiError("请求 JSON 无效")
+        raise ApiError("请求 JSON 无效") from None
+    if not isinstance(body, dict):
+        raise ApiError("请求必须是 JSON 对象")
+    return body
 
 
 def cookie_value(handler: SimpleHTTPRequestHandler, name: str) -> Optional[str]:
@@ -547,24 +549,27 @@ def ai_order_action(order_id: int) -> Dict[str, Any]:
         raise ApiError("只能操作 AI 订票员生成的订单", 403)
     order = rows[0]
     user_id = int(order["user_id"])
-    products = mysql_rows(
-        "SELECT DISTINCT run_id,seat_type_id FROM order_item "
-        f"WHERE order_id={order_id};"
-    )
+    if order["order_status"] in {"REFUNDED", "CANCELLED"}:
+        return {"order_id": order_id, "action": order["order_status"], "already_processed": True}
     if order["order_status"] == "PAID":
         result = mysql_rows(
             "CALL sp_refund_paid_order("
-            f"{user_id},{order_id},'ADMIN-AI-REF-{uuid.uuid4().hex}',"
+            f"{user_id},{order_id},'ADMIN-AI-REF-{order_id}',"
             "'ADMIN_LOAD_TEST',@rid);SELECT @rid AS refund_id;"
         )
-        match_waitlist_groups(products)
-        return {"order_id": order_id, "action": "REFUNDED",
-                "refund_id": result[-1].get("refund_id") if result else None}
-    if order["order_status"] == "PENDING_PAYMENT":
+        action = {"order_id": order_id, "action": "REFUNDED",
+                  "refund_id": result[-1].get("refund_id") if result else None}
+    elif order["order_status"] == "PENDING_PAYMENT":
         mysql_rows(f"CALL sp_cancel_unpaid_order({user_id},{order_id});")
-        match_waitlist_groups(products)
-        return {"order_id": order_id, "action": "CANCELLED"}
-    raise ApiError("该 AI 订单当前状态不可退票或取消", 409)
+        action = {"order_id": order_id, "action": "CANCELLED"}
+    else:
+        raise ApiError("该 AI 订单当前状态不可退票或取消", 409)
+    try:
+        match_after_release(order_id)
+    except DatabaseError:
+        # The order transaction has already committed. The worker retries matching.
+        action["waitlist_pending"] = True
+    return action
 
 
 def settle_waitlist_payments() -> int:
@@ -1536,6 +1541,18 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         try:
+            # Read the entire body before routing, including for routes that need no JSON.
+            # Otherwise the next request on a persistent connection begins with leftover bytes.
+            try:
+                if self.headers.get("Transfer-Encoding") or len(self.headers.get_all("Content-Length", [])) > 1:
+                    raise ApiError("不支持的请求正文格式")
+                length = integer(self.headers.get("Content-Length", "0"), "Content-Length", 0, 100_000)
+                self.post_body = self.rfile.read(length)
+                if len(self.post_body) != length:
+                    raise ApiError("请求正文不完整")
+            except (ApiError, OSError):
+                self.close_connection = True
+                raise
             self.handle_api("POST")
         except ApiError as exc:
             self.send_json({"error": str(exc)}, exc.status)

@@ -30,6 +30,31 @@ function renderQueueTrend(card, samples) {
   }
 }
 
+function renderExplanationEvidence(summary, report, isModel) {
+  const { inventory, buffer, explanation } = report;
+  const evidence = analysisDetails(summary, '本次解读依据');
+  evidence.className = 'anomaly-evidence';
+  const source = isModel && explanation.model ? `模型 API · ${explanation.model}` : explanation.mode;
+  analysisElement(evidence, 'p', `解读生成方式 · ${source}`, 'analysis-note');
+
+  analysisElement(evidence, 'h4', '库存核对');
+  const range = report.source ? '采用模拟库存样本' : '核对所选运营日和车次的全部现有运行座位';
+  analysisElement(evidence, 'p', `${range}，共 ${inventory.checked_seats} 席。`
+    + `位图不一致 ${inventory.mask_mismatch_count} 席，重叠分配 ${inventory.overlap_seat_count} 席，去重后异常 ${inventory.anomaly_count} 席。`);
+  if (!report.source) analysisElement(evidence, 'p', '来源 · v_anomaly_seats 库存一致性视图', 'analysis-note');
+
+  analysisElement(evidence, 'h4', '订票缓冲采样');
+  const samples = buffer.samples;
+  const sampleSource = report.source ? '模拟缓冲' : '全库订票缓冲';
+  const rangeLabel = samples.length > 1 ? `（${samples[0].captured_at} 至 ${samples.at(-1).captured_at}）` : '';
+  analysisElement(evidence, 'p', `${sampleSource}保留 ${samples.length} 次采样${rangeLabel}。${buffer.message}`);
+  if (!report.source) analysisElement(evidence, 'p', '来源 · booking_request_buffer 订票缓冲表', 'analysis-note');
+  if (samples.length) {
+    analysisTable(evidence, [['captured_at', '最近采样时间'], ['queued', '排队数'], ['oldest_seconds', '最老等待（秒）']], samples.slice(-3));
+  }
+  if (isModel) analysisElement(evidence, 'p', '模型根据库存汇总、缓冲采样和规则说明生成解读。检测状态由程序按规则判定。', 'analysis-note');
+}
+
 function renderAnomalies(report) {
   const root = $('anomalyResult');
   root.replaceChildren();
@@ -42,7 +67,7 @@ function renderAnomalies(report) {
     analysisElement(summary, 'h3', isModel ? '模型诊断' : '检测解读');
     if (isModel) analysisElement(summary, 'span', '模型 API', 'analysis-api-label');
     analysisElement(summary, 'p', report.explanation.text, 'analysis-answer');
-    analysisElement(analysisDetails(summary, '查看解读来源'), 'p', mode, 'analysis-note');
+    renderExplanationEvidence(summary, report, isModel);
   }
 
   const diagnostics = analysisElement(root, 'div', '', 'analysis-diagnostics');

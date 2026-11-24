@@ -7,7 +7,7 @@ import time
 from collections import deque
 from datetime import datetime, timezone
 
-from model_api import call_tool
+from model_api import DEFAULT_MODEL, call_tool
 
 
 BUFFER_SQL = """
@@ -39,7 +39,8 @@ def inventory_result(rows):
             "mask_mismatch_count": sum(f["actual_mask"] != f["expected_mask"] for f in findings),
             "overlap_seat_count": sum(f["overlapping_allocations"] for f in findings),
             "checked_seats": len(rows), "anomaly_count": len(findings), "findings": findings[:50],
-            "definition": "同一只读快照中，对现有运行座位核对 HOLD、CONFIRMED 分配区间的按位或与库存位图。"
+            "definition": "同一只读快照中，核对所选运营日与车次的全部现有运行座位。"
+                          "将 HOLD、CONFIRMED 分配区间的按位或与库存位图对比。"
                           "另检查有效分配占用的区段总数是否超过合并位图的区段数。证据最多展示50个座位。"}
 
 
@@ -118,16 +119,21 @@ def explain_report(report):
     try:
         reply = call_tool(json.dumps(evidence, ensure_ascii=False), key,
                           "你是铁路运营诊断助手。仅据证据解释规则状态和建议人工核查的方向。"
-                          "库存日期是固定演示班次运营日，缓冲覆盖全库并按当前真实时间采样，两者时间范围独立。"
+                          "库存使用所选班次运营日，缓冲覆盖全库并按当前时间采样，两者时间范围独立。"
+                          "checked_seats 是该运营日与车次在快照中的全部现有运行座位数。"
+                          "库存检查逐座执行，明细最多展示50席，此限制仅用于展示。"
                           "缓冲样本直接SELECT数据库取得；采样失败或过期会显示unavailable，"
-                          "有效样本均为0表示数据库中没有对应状态的请求。"
+                          "有效样本均为0表示采样时数据库中没有对应状态的请求。"
+                          "积压判定使用最近3次有效样本。禁止用样本总数和标称间隔推算实际覆盖时长。"
                           "mask_mismatch_count是两份位图不同的座位数，overlap_seat_count是重叠分配座位数，"
                           "anomaly_count是两者并集，禁止将其等同于所有位图不一致。"
-                          "保持检测结果，推测必须标明待验证。不要编造故障原因、数字或已完成的修复。"
-                          "用简短中文回复，最多500字。", schema)
+                          "界面已经展示字段、计数、样本和判定规则。用通俗中文概括触发或未触发的关键原因，"
+                          "不逐项复述字段名。正常时无需假设异常；有异常或缺少数据时给出一条优先核查方向。"
+                          "推测必须标明待验证。不要编造原因、数字或已完成的修复。控制在200字内。", schema)
         if not isinstance(reply.get("explanation"), str) or not reply["explanation"].strip():
             raise ValueError("missing explanation")
-        return {"mode": "模型辅助解释（建议需人工核查）", "text": reply["explanation"][:1500]}
+        return {"mode": "模型辅助解释（建议需人工核查）", "model": os.getenv("CR12306_AI_MODEL", DEFAULT_MODEL),
+                "text": reply["explanation"][:1500]}
     except (OSError, ValueError, TypeError, KeyError, IndexError, AttributeError):
         return {"mode": "本地规则解释（模型接口暂不可用）", "text": local}
 

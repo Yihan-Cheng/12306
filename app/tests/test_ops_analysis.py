@@ -78,6 +78,40 @@ class SchemaOperations(unittest.TestCase):
             self.assertIn("模型接口暂不可用", self.ask("按席别统计订单数", read)["clarify"])
             read.assert_called_once()
 
+    def test_model_clarification_preserves_long_complete_text(self):
+        read = Mock(return_value=metadata())
+        message = ("当前报表只有订单、候补、缓冲和全程库存数据。" * 9
+                   + "订单中的上下车站只反映交易区间，不能用来确定完整经停站。")
+        self.assertGreater(len(message), 200)
+        with patch.object(analysis, "call_tool", return_value=plan(clarify=message)):
+            result = self.ask("G3864 停哪些车站", read)
+        self.assertEqual(result["clarify"], message)
+        read.assert_called_once()
+
+    def test_new_city_and_customer_filters_and_amount(self):
+        read = Mock(side_effect=[metadata(), [{"origin_city": "南京", "metric_value": "46.00"}]])
+        reply = plan(metric="ticket_value", group_by=["origin_city"], filters={"customer_kind": ["SIMULATED"]})
+        with patch.object(analysis, "call_tool", return_value=reply):
+            result = self.ask("按出发城市统计 AI 订票员的票面金额", read)
+        self.assertIn("SUM(price_snapshot)", result["sql"])
+        self.assertEqual(result["params"], ["2026-10-14", "SIMULATED"])
+        self.assertIn("客群 AI 订票员", result["scope"])
+
+    def test_incompatible_fields_and_values_do_not_execute(self):
+        for filters in ({"origin_city": ["南京"]}, {"carriage_no": ["二号"]}, {"status": ["PAID"]}):
+            read = Mock(return_value=metadata())
+            with self.subTest(filters=filters), patch.object(analysis, "call_tool", return_value=
+                    plan(metric="inventory_free", group_by=["carriage_no"], filters=filters)):
+                self.assertIn("clarify", self.ask("按车厢看全程空闲座位", read))
+            read.assert_called_once()
+
+    def test_missing_new_column_keeps_previous_reports_available(self):
+        read = Mock(side_effect=[metadata(omit=("customer_kind",)), [{"metric_value": 0}]])
+        with patch.object(analysis, "call_tool", return_value=plan(group_by=[], filters={})) as model:
+            result = self.ask("分组对比后的已支付订单总数", read)
+        self.assertIn("COUNT(DISTINCT order_id)", result["sql"])
+        self.assertNotIn("customer_kind", model.call_args.args[2])
+
 
 if __name__ == "__main__":
     unittest.main()
